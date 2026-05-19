@@ -61,7 +61,7 @@ use crate::parameters::{
 use crate::preset::{PresetManager, PresetValues};
 use crate::state::MeterValues;
 
-const BASE_W: f32 = 820.0;
+const BASE_W: f32 = 760.0;
 const BASE_H: f32 = 580.0;
 const DISPLAY_VERSION: &str = "v1.0";
 const DEFAULT_DPI: u32 = 96;
@@ -2852,7 +2852,7 @@ impl Layout {
         let header = UiRect::new(0.0, 0.0, w, 82.0 * s);
         let y = header.bottom() + 8.0 * s;
         let content_h = (h - y - 8.0 * s).max(390.0 * s);
-        let meter_w = 52.0 * s;
+        let meter_w = 48.0 * s;
         let input_meter = UiRect::new(8.0 * s, y, meter_w, content_h);
         let output_meter = UiRect::new(w - (meter_w + 8.0 * s), y, meter_w, content_h);
         let x0 = input_meter.right() + 8.0 * s;
@@ -2936,8 +2936,8 @@ impl ChannelLayout {
         Self {
             panel,
             title: UiRect::new(panel.x, panel.y + 12.0 * s, panel.w, 24.0 * s),
-            input_label: UiRect::new(panel.x + 16.0 * s, panel.y + 48.0 * s, 80.0 * s, 14.0 * s),
-            input: UiRect::new(panel.x + 16.0 * s, panel.y + 64.0 * s, 88.0 * s, 24.0 * s),
+            input_label: UiRect::new(cx - 224.0 * s, panel.y + 48.0 * s, 116.0 * s, 14.0 * s),
+            input: UiRect::new(cx - 224.0 * s, panel.y + 64.0 * s, 116.0 * s, 24.0 * s),
             note_label: UiRect::new(side_box_x, delay_cy - 45.0 * s, 82.0 * s, 14.0 * s),
             note: UiRect::new(side_box_x, delay_cy - 31.0 * s, 82.0 * s, 24.0 * s),
             delay_label: UiRect::new(
