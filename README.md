@@ -3,7 +3,13 @@
 *A lightweight monophonic delay processor by Nebula Audio.*
 
 Nebula Delay is the mono sibling of Nebula Stereo Delay. It keeps the same double-precision delay core, lock-free meters, MIDI learn workflow, hard bypass, A/B comparison, undo/redo, preset management, tempo sync, filters, and oversampling, but exposes a true 1-in/1-out plugin for mono tracks.
-
+===
+**Screenshot of macOS and Linux variant that uses EGUI:**
+<img width="703" height="642" alt="image" src="https://github.com/user-attachments/assets/76659636-6822-4d52-b1cf-22ad9a4a60c5" />
+===
+**Screenshot of Windows variant that uses Direct2D**
+<img width="710" height="611" alt="image" src="https://github.com/user-attachments/assets/d9a98932-b69d-41ea-938c-5b3cae1c8007" />
+===
 ## Formats
 
 | Platform | Formats |
