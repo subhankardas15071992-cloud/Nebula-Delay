@@ -102,11 +102,11 @@ const ARC_END: f32 = ARC_START + 3.0 * std::f32::consts::FRAC_PI_2;
 const ARC_SWEEP: f32 = ARC_END - ARC_START;
 
 /// Default window width in logical pixels.
-const WIN_W: u32 = 760;
+const WIN_W: u32 = 700;
 /// Default window height in logical pixels.
 const WIN_H: u32 = 580;
 
-const LOGIC_W: f32 = 760.0;
+const LOGIC_W: f32 = 700.0;
 const LOGIC_H: f32 = 580.0;
 const HEADER_H: f32 = 72.0;
 const TOOLBAR_Y: f32 = 80.0;
@@ -119,7 +119,7 @@ const INPUT_METER_X: f32 = 8.0;
 const LEFT_X: f32 = 62.0;
 const RIGHT_X: f32 = 426.0;
 const GLOBAL_X: f32 = 776.0;
-const OUTPUT_METER_X: f32 = 704.0;
+const OUTPUT_METER_X: f32 = 644.0;
 
 const LOGIC_BG: Color32 = Color32::from_rgb(0x21, 0x39, 0x50);
 const LOGIC_BG_ALT: Color32 = Color32::from_rgb(0x1D, 0x34, 0x49);
@@ -756,7 +756,7 @@ fn draw_nebula_mono_channel(
     draw_nebula_mono_delay(ui, state, setter, c, panel_cx, 238.0);
 
     painter.text(
-        c.pos(panel_cx - 166.0, 198.0),
+        c.pos(panel_cx - 154.0, 198.0),
         Align2::CENTER_CENTER,
         "OVERSAMPLING",
         c.font(9.0),
@@ -767,7 +767,7 @@ fn draw_nebula_mono_channel(
         state,
         setter,
         c,
-        c.rect(panel_cx - 224.0, 211.0, 116.0, 24.0),
+        c.rect(panel_cx - 212.0, 211.0, 116.0, 24.0),
     );
 
     nebula_divider(&painter, c, x + 24.0, 308.0, x + panel_w - 24.0);
@@ -780,23 +780,14 @@ fn draw_nebula_mono_channel(
     );
 
     let filter_y = 366.0;
-    for (param, offset, label, color) in [
-        (&params.low_cut_l, 126.0, "HPF", ORANGE),
-        (&params.low_cut_slope_l, 256.0, "HPFS", PURPLE),
-        (&params.high_cut_l, 386.0, "LPF", ORANGE),
-        (&params.high_cut_slope_l, 516.0, "LPFS", PURPLE),
+    for (param, cx, label, color) in [
+        (&params.low_cut_l, panel_cx - 205.0, "HPF", ORANGE),
+        (&params.low_cut_slope_l, panel_cx - 68.0, "HPFS", PURPLE),
+        (&params.high_cut_l, panel_cx + 68.0, "LPF", ORANGE),
+        (&params.high_cut_slope_l, panel_cx + 205.0, "LPFS", PURPLE),
     ] {
         nebula_knob_cell(
-            ui,
-            state,
-            setter,
-            c,
-            param,
-            x + offset,
-            filter_y,
-            21.0,
-            label,
-            color,
+            ui, state, setter, c, param, cx, filter_y, 21.0, label, color,
         );
     }
 
@@ -808,7 +799,7 @@ fn draw_nebula_mono_channel(
         setter,
         c,
         &params.feedback_l,
-        x + 150.0,
+        panel_cx - 155.0,
         482.0,
         24.0,
         "FEEDBACK",
@@ -834,7 +825,7 @@ fn draw_nebula_mono_channel(
         setter,
         c,
         &params.output_mix_r,
-        x + panel_w - 150.0,
+        panel_cx + 155.0,
         482.0,
         24.0,
         "WET",
@@ -865,7 +856,7 @@ fn draw_nebula_mono_delay(
     let synced = params.tempo_sync.value();
 
     painter.text(
-        c.pos(cx, cy - 58.0),
+        c.pos(cx, cy - 68.0),
         Align2::CENTER_CENTER,
         "DELAY TIME",
         c.font(10.0),

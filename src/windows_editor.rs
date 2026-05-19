@@ -61,7 +61,7 @@ use crate::parameters::{
 use crate::preset::{PresetManager, PresetValues};
 use crate::state::MeterValues;
 
-const BASE_W: f32 = 760.0;
+const BASE_W: f32 = 700.0;
 const BASE_H: f32 = 580.0;
 const DISPLAY_VERSION: &str = "v1.0";
 const DEFAULT_DPI: u32 = 96;
@@ -2924,10 +2924,10 @@ impl ChannelLayout {
         let button_y = delay_cy + delay_r + 16.0 * s;
         let filter_y = panel.y + 264.0 * s;
         let filter_x = [
-            panel.x + panel.w * 0.20,
-            panel.x + panel.w * 0.36,
-            panel.x + panel.w * 0.64,
-            panel.x + panel.w * 0.80,
+            panel.x + panel.w * 0.15,
+            panel.x + panel.w * 0.38,
+            panel.x + panel.w * 0.62,
+            panel.x + panel.w * 0.85,
         ];
         let feedback_cx = panel.x + panel.w * 0.25;
         let crossfeed_cx = panel.x + panel.w * 0.75;
@@ -2936,13 +2936,13 @@ impl ChannelLayout {
         Self {
             panel,
             title: UiRect::new(panel.x, panel.y + 12.0 * s, panel.w, 24.0 * s),
-            input_label: UiRect::new(cx - 224.0 * s, panel.y + 48.0 * s, 116.0 * s, 14.0 * s),
-            input: UiRect::new(cx - 224.0 * s, panel.y + 64.0 * s, 116.0 * s, 24.0 * s),
+            input_label: UiRect::new(cx - 212.0 * s, panel.y + 48.0 * s, 116.0 * s, 14.0 * s),
+            input: UiRect::new(cx - 212.0 * s, panel.y + 64.0 * s, 116.0 * s, 24.0 * s),
             note_label: UiRect::new(side_box_x, delay_cy - 45.0 * s, 82.0 * s, 14.0 * s),
             note: UiRect::new(side_box_x, delay_cy - 31.0 * s, 82.0 * s, 24.0 * s),
             delay_label: UiRect::new(
                 delay_cx - 56.0 * s,
-                delay_cy - 72.0 * s,
+                delay_cy - 82.0 * s,
                 112.0 * s,
                 14.0 * s,
             ),
