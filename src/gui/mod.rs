@@ -102,24 +102,24 @@ const ARC_END: f32 = ARC_START + 3.0 * std::f32::consts::FRAC_PI_2;
 const ARC_SWEEP: f32 = ARC_END - ARC_START;
 
 /// Default window width in logical pixels.
-const WIN_W: u32 = 1000;
+const WIN_W: u32 = 820;
 /// Default window height in logical pixels.
-const WIN_H: u32 = 640;
+const WIN_H: u32 = 580;
 
-const LOGIC_W: f32 = 1000.0;
-const LOGIC_H: f32 = 640.0;
-const HEADER_H: f32 = 76.0;
-const TOOLBAR_Y: f32 = 84.0;
-const TOP_H: f32 = 116.0;
+const LOGIC_W: f32 = 820.0;
+const LOGIC_H: f32 = 580.0;
+const HEADER_H: f32 = 72.0;
+const TOOLBAR_Y: f32 = 80.0;
+const TOP_H: f32 = 110.0;
 const FOOT_H: f32 = 0.0;
 const LEFT_W: f32 = 342.0;
 const RIGHT_W: f32 = 342.0;
-const METER_W: f32 = 60.0;
+const METER_W: f32 = 52.0;
 const INPUT_METER_X: f32 = 8.0;
-const LEFT_X: f32 = 76.0;
+const LEFT_X: f32 = 68.0;
 const RIGHT_X: f32 = 426.0;
 const GLOBAL_X: f32 = 776.0;
-const OUTPUT_METER_X: f32 = 928.0;
+const OUTPUT_METER_X: f32 = 760.0;
 
 const LOGIC_BG: Color32 = Color32::from_rgb(0x21, 0x39, 0x50);
 const LOGIC_BG_ALT: Color32 = Color32::from_rgb(0x1D, 0x34, 0x49);
@@ -553,13 +553,13 @@ fn draw_nebula_level_meter(
         (state.meters.get_output_l(), "OUTPUT", "output_level_meter")
     };
     let peak_db = linear_to_db(level);
-    let top_rect = c.rect(x + 6.0, 184.0, METER_W - 12.0, 24.0);
-    let meter = c.rect(x + 25.0, 224.0, 10.0, 292.0);
-    let slider_rect = c.rect(x + 9.0, 216.0, METER_W - 18.0, 308.0);
-    let bottom_rect = c.rect(x + 5.0, 552.0, METER_W - 10.0, 24.0);
+    let top_rect = c.rect(x + 4.0, 164.0, METER_W - 8.0, 23.0);
+    let meter = c.rect(x + METER_W * 0.5 - 5.0, 204.0, 10.0, 258.0);
+    let slider_rect = c.rect(x + 8.0, 196.0, METER_W - 16.0, 274.0);
+    let bottom_rect = c.rect(x + 4.0, 514.0, METER_W - 8.0, 23.0);
 
     painter.text(
-        c.pos(x + METER_W * 0.5, 168.0),
+        c.pos(x + METER_W * 0.5, 149.0),
         Align2::CENTER_CENTER,
         label,
         c.font(10.0),
@@ -743,41 +743,42 @@ fn draw_nebula_mono_channel(
     let painter = ui.painter().clone();
     let params = state.params.clone();
     let panel_w = OUTPUT_METER_X - LEFT_X - 8.0;
+    let panel_cx = x + panel_w * 0.5;
 
     painter.text(
-        c.pos(x + panel_w * 0.5, 169.0),
+        c.pos(panel_cx, 148.0),
         Align2::CENTER_CENTER,
         "NEBULA DELAY",
         c.font(18.0),
         ACCENT,
     );
 
-    draw_nebula_mono_delay(ui, state, setter, c, x + 420.0, 252.0);
+    draw_nebula_mono_delay(ui, state, setter, c, panel_cx, 238.0);
 
     painter.text(
-        c.pos(x + 90.0, 211.0),
+        c.pos(x + 82.0, 198.0),
         Align2::CENTER_CENTER,
         "OVERSAMPLING",
         c.font(9.0),
         TEXT_SEC,
     );
-    logic_oversampling_dropdown(ui, state, setter, c, c.rect(x + 30.0, 224.0, 120.0, 25.0));
+    logic_oversampling_dropdown(ui, state, setter, c, c.rect(x + 24.0, 211.0, 116.0, 24.0));
 
-    nebula_divider(&painter, c, x + 26.0, 326.0, x + panel_w - 26.0);
+    nebula_divider(&painter, c, x + 24.0, 308.0, x + panel_w - 24.0);
     painter.text(
-        c.pos(x + panel_w * 0.5, 344.0),
+        c.pos(panel_cx, 326.0),
         Align2::CENTER_CENTER,
         "FILTER",
         c.font(10.0),
         TEXT_SEC,
     );
 
-    let filter_y = 386.0;
+    let filter_y = 366.0;
     for (param, offset, label, color) in [
-        (&params.low_cut_l, 150.0, "HPF", ORANGE),
-        (&params.low_cut_slope_l, 300.0, "HPFS", PURPLE),
-        (&params.high_cut_l, 450.0, "LPF", ORANGE),
-        (&params.high_cut_slope_l, 600.0, "LPFS", PURPLE),
+        (&params.low_cut_l, 138.0, "HPF", ORANGE),
+        (&params.low_cut_slope_l, 274.0, "HPFS", PURPLE),
+        (&params.high_cut_l, 410.0, "LPF", ORANGE),
+        (&params.high_cut_slope_l, 546.0, "LPFS", PURPLE),
     ] {
         nebula_knob_cell(
             ui,
@@ -793,7 +794,7 @@ fn draw_nebula_mono_channel(
         );
     }
 
-    nebula_divider(&painter, c, x + 26.0, 446.0, x + panel_w - 26.0);
+    nebula_divider(&painter, c, x + 24.0, 420.0, x + panel_w - 24.0);
 
     nebula_knob_cell(
         ui,
@@ -801,9 +802,9 @@ fn draw_nebula_mono_channel(
         setter,
         c,
         &params.feedback_l,
-        x + 210.0,
-        508.0,
-        26.0,
+        x + 170.0,
+        482.0,
+        24.0,
         "FEEDBACK",
         MAGENTA,
     );
@@ -814,9 +815,9 @@ fn draw_nebula_mono_channel(
         setter,
         c,
         &params.output_mix_l,
-        x + 420.0,
-        508.0,
-        26.0,
+        panel_cx,
+        482.0,
+        24.0,
         "DRY",
         ACCENT,
     );
@@ -827,15 +828,15 @@ fn draw_nebula_mono_channel(
         setter,
         c,
         &params.output_mix_r,
-        x + 630.0,
-        508.0,
-        26.0,
+        x + panel_w - 170.0,
+        482.0,
+        24.0,
         "WET",
         PURPLE,
     );
 
     painter.text(
-        c.pos(x + 420.0, 586.0),
+        c.pos(panel_cx, 532.0),
         Align2::CENTER_CENTER,
         "PHASE",
         c.font(9.0),
@@ -846,7 +847,7 @@ fn draw_nebula_mono_channel(
         state,
         setter,
         c,
-        c.rect(x + 380.0, 599.0, 80.0, 24.0),
+        c.rect(panel_cx - 40.0, 544.0, 80.0, 24.0),
         &params.feedback_phase_l,
         "INVERT",
     );
@@ -865,13 +866,13 @@ fn draw_nebula_mono_delay(
     let synced = params.tempo_sync.value();
 
     painter.text(
-        c.pos(cx, cy - 64.0),
+        c.pos(cx, cy - 58.0),
         Align2::CENTER_CENTER,
         "DELAY TIME",
         c.font(10.0),
         TEXT_SEC,
     );
-    let delay_r = 38.0;
+    let delay_r = 36.0;
     let knob_cy = cy - 7.0;
     logic_delay_knob(
         ui,
@@ -887,7 +888,7 @@ fn draw_nebula_mono_delay(
 
     let button_w = 30.0;
     let button_h = 19.0;
-    let button_radius = delay_r + 22.0;
+    let button_radius = delay_r + 20.0;
     let halve_x = cx + ARC_START.cos() * button_radius;
     let halve_y = cy + ARC_START.sin() * button_radius;
     let double_x = cx + ARC_END.cos() * button_radius;
@@ -926,7 +927,7 @@ fn draw_nebula_mono_delay(
     );
 
     painter.text(
-        c.pos(cx + 116.0, cy - 43.0),
+        c.pos(cx + 108.0, cy - 43.0),
         Align2::CENTER_CENTER,
         "NOTE",
         c.font(9.0),
@@ -938,14 +939,14 @@ fn draw_nebula_mono_delay(
             state,
             setter,
             c,
-            c.rect(cx + 76.0, cy - 31.0, 82.0, 24.0),
+            c.rect(cx + 68.0, cy - 31.0, 82.0, 24.0),
             Channel::Left,
         );
     } else {
         nebula_value_box(
             &painter,
             c,
-            c.rect(cx + 76.0, cy - 31.0, 82.0, 24.0),
+            c.rect(cx + 68.0, cy - 31.0, 82.0, 24.0),
             enum_name(params.note_l.value()),
             false,
         );
@@ -956,7 +957,7 @@ fn draw_nebula_mono_delay(
         state,
         setter,
         c,
-        c.rect(cx + 76.0, cy + 27.0, 82.0, 26.0),
+        c.rect(cx + 68.0, cy + 27.0, 82.0, 26.0),
         &params.tempo_sync,
         if synced { "SYNC ON" } else { "SYNC OFF" },
         "mono_sync",

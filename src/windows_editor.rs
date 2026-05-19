@@ -61,8 +61,8 @@ use crate::parameters::{
 use crate::preset::{PresetManager, PresetValues};
 use crate::state::MeterValues;
 
-const BASE_W: f32 = 1000.0;
-const BASE_H: f32 = 640.0;
+const BASE_W: f32 = 820.0;
+const BASE_H: f32 = 580.0;
 const DISPLAY_VERSION: &str = "v1.0";
 const DEFAULT_DPI: u32 = 96;
 const TIMER_ID: usize = 8801;
@@ -475,25 +475,25 @@ impl NativeWindowState {
         draw_text(
             rt,
             title,
-            UiRect::new(rect.x, rect.y + 10.0 * s, rect.w, 16.0 * s),
+            UiRect::new(rect.x, rect.y + 9.0 * s, rect.w, 16.0 * s),
             &formats.body,
             &brushes.accent,
             Align::Center,
         );
         let level_db = 20.0 * level_l.max(0.000_001).log10();
         let top = UiRect::new(
-            rect.x + 8.0 * s,
-            rect.y + 33.0 * s,
-            rect.w - 16.0 * s,
+            rect.x + 5.0 * s,
+            rect.y + 31.0 * s,
+            rect.w - 10.0 * s,
             22.0 * s,
         );
         draw_value_box(rt, top, &format_meter_db(level_db), brushes, formats);
 
         let rail = UiRect::new(
             rect.center_x() - 5.0 * s,
-            rect.y + 74.0 * s,
+            rect.y + 68.0 * s,
             10.0 * s,
-            rect.h - 150.0 * s,
+            rect.h - 136.0 * s,
         );
         draw_meter_track(rt, rail, level_l, brushes, s);
         for i in 0..=5 {
@@ -515,18 +515,18 @@ impl NativeWindowState {
         fill_round(
             rt,
             UiRect::new(
-                rect.x + 12.0 * s,
+                rect.x + 9.0 * s,
                 handle_y - 4.0 * s,
-                rect.w - 24.0 * s,
+                rect.w - 18.0 * s,
                 8.0 * s,
             ),
             2.5 * s,
             &brushes.accent_light,
         );
         let bottom = UiRect::new(
-            rect.x + 8.0 * s,
-            rect.bottom() - 45.0 * s,
-            rect.w - 16.0 * s,
+            rect.x + 5.0 * s,
+            rect.bottom() - 38.0 * s,
+            rect.w - 10.0 * s,
             22.0 * s,
         );
         draw_value_box(
@@ -1856,15 +1856,15 @@ impl NativeWindowState {
     fn value_rect(&self, control: FloatControl, layout: &Layout) -> Option<UiRect> {
         value_rect_for_control(control, &layout.left, Channel::Left).or_else(|| match control {
             FloatControl::InputLevel => Some(UiRect::new(
-                layout.input_meter.x + 8.0 * layout.s,
-                layout.input_meter.bottom() - 45.0 * layout.s,
-                layout.input_meter.w - 16.0 * layout.s,
+                layout.input_meter.x + 5.0 * layout.s,
+                layout.input_meter.bottom() - 38.0 * layout.s,
+                layout.input_meter.w - 10.0 * layout.s,
                 22.0 * layout.s,
             )),
             FloatControl::OutputLevel => Some(UiRect::new(
-                layout.output_meter.x + 8.0 * layout.s,
-                layout.output_meter.bottom() - 45.0 * layout.s,
-                layout.output_meter.w - 16.0 * layout.s,
+                layout.output_meter.x + 5.0 * layout.s,
+                layout.output_meter.bottom() - 38.0 * layout.s,
+                layout.output_meter.w - 10.0 * layout.s,
                 22.0 * layout.s,
             )),
             FloatControl::OutputMixL => Some(UiRect::new(
@@ -2849,14 +2849,15 @@ impl Layout {
     fn new(w: f32, h: f32) -> Self {
         let s = (w / BASE_W).min(h / BASE_H).clamp(0.48, 3.0);
         let full = UiRect::new(0.0, 0.0, w, h);
-        let header = UiRect::new(0.0, 0.0, w, 90.0 * s);
+        let header = UiRect::new(0.0, 0.0, w, 82.0 * s);
         let y = header.bottom() + 8.0 * s;
-        let content_h = (h - y - 8.0 * s).max(420.0 * s);
-        let input_meter = UiRect::new(8.0 * s, y, 60.0 * s, content_h);
-        let output_meter = UiRect::new(w - 68.0 * s, y, 60.0 * s, content_h);
+        let content_h = (h - y - 8.0 * s).max(390.0 * s);
+        let meter_w = 52.0 * s;
+        let input_meter = UiRect::new(8.0 * s, y, meter_w, content_h);
+        let output_meter = UiRect::new(w - (meter_w + 8.0 * s), y, meter_w, content_h);
         let x0 = input_meter.right() + 8.0 * s;
         let x3 = output_meter.x - 8.0 * s;
-        let channel_w = (x3 - x0).max(520.0 * s);
+        let channel_w = (x3 - x0).max(480.0 * s);
         let left_rect = UiRect::new(x0, y, channel_w, content_h);
         let right_rect = UiRect::new(x0, y, 0.0, 0.0);
         let global = UiRect::new(x0, y, 0.0, 0.0);
@@ -2914,27 +2915,27 @@ impl ChannelLayout {
     fn new(panel: UiRect, s: f32) -> Self {
         let cx = panel.center_x();
         let delay_cx = cx;
-        let delay_cy = panel.y + 147.0 * s;
-        let delay_r = 36.0 * s;
+        let delay_cy = panel.y + 133.0 * s;
+        let delay_r = 34.0 * s;
         let button_w = 30.0 * s;
         let button_h = 19.0 * s;
         let halve_x = delay_cx - 40.0 * s;
         let double_x = delay_cx + 40.0 * s;
         let button_y = delay_cy + delay_r + 16.0 * s;
-        let filter_y = panel.y + 288.0 * s;
+        let filter_y = panel.y + 264.0 * s;
         let filter_x = [
-            panel.x + panel.w * 0.18,
+            panel.x + panel.w * 0.20,
             panel.x + panel.w * 0.36,
             panel.x + panel.w * 0.64,
-            panel.x + panel.w * 0.82,
+            panel.x + panel.w * 0.80,
         ];
-        let feedback_cx = panel.x + panel.w * 0.28;
-        let crossfeed_cx = panel.x + panel.w * 0.72;
-        let row_y = panel.y + 402.0 * s;
+        let feedback_cx = panel.x + panel.w * 0.25;
+        let crossfeed_cx = panel.x + panel.w * 0.75;
+        let row_y = panel.y + 378.0 * s;
         let side_box_x = delay_cx + 64.0 * s;
         Self {
             panel,
-            title: UiRect::new(panel.x, panel.y + 13.0 * s, panel.w, 24.0 * s),
+            title: UiRect::new(panel.x, panel.y + 12.0 * s, panel.w, 24.0 * s),
             input_label: UiRect::new(panel.x + 16.0 * s, panel.y + 48.0 * s, 80.0 * s, 14.0 * s),
             input: UiRect::new(panel.x + 16.0 * s, panel.y + 64.0 * s, 88.0 * s, 24.0 * s),
             note_label: UiRect::new(side_box_x, delay_cy - 45.0 * s, 82.0 * s, 14.0 * s),
@@ -3803,9 +3804,9 @@ fn knob_rect(cx: f32, cy: f32, radius: f32) -> UiRect {
 fn meter_rail(rect: UiRect, s: f32) -> UiRect {
     UiRect::new(
         rect.center_x() - 10.0 * s,
-        rect.y + 74.0 * s,
+        rect.y + 68.0 * s,
         20.0 * s,
-        rect.h - 150.0 * s,
+        rect.h - 136.0 * s,
     )
 }
 
