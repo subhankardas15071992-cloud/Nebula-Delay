@@ -62,3 +62,8 @@ The build scripts create properly structured CLAP/VST3 bundles under `build/`.
 ## License
 
 Nebula Delay is open-source software licensed under the GNU Affero General Public License v3. See [LICENSE](LICENSE) for details.
+
+---
+
+**Reporting Issues:**
+For reporting any issues create an issue on the Github repository, and while creating the issue do mention your email ID in the issue. The issues of paid customers will be solved on priority basis. Free customers are expected to workout any issues on their own, no support will be provided to them.
