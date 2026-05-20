@@ -63,7 +63,7 @@ use crate::state::MeterValues;
 
 const BASE_W: f32 = 700.0;
 const BASE_H: f32 = 580.0;
-const DISPLAY_VERSION: &str = "v1.0";
+const DISPLAY_VERSION: &str = "v1.1";
 const DEFAULT_DPI: u32 = 96;
 const TIMER_ID: usize = 8801;
 const TIMER_MS: u32 = 33;
@@ -357,7 +357,7 @@ impl NativeWindowState {
             rt,
             DISPLAY_VERSION,
             UiRect::new(
-                896.0 * layout.s,
+                layout.full.right() - 98.0 * layout.s,
                 16.0 * layout.s,
                 80.0 * layout.s,
                 18.0 * layout.s,
@@ -487,7 +487,7 @@ impl NativeWindowState {
             rect.w - 10.0 * s,
             22.0 * s,
         );
-        draw_value_box(rt, top, &format_meter_db(level_db), brushes, formats);
+        draw_meter_value_box(rt, top, &format_meter_db(level_db), brushes, formats);
 
         let rail = UiRect::new(
             rect.center_x() - 5.0 * s,
@@ -529,7 +529,7 @@ impl NativeWindowState {
             rect.w - 10.0 * s,
             22.0 * s,
         );
-        draw_value_box(
+        draw_meter_value_box(
             rt,
             bottom,
             &format_float(self.float_param(trim)),
@@ -645,6 +645,7 @@ impl NativeWindowState {
             &brushes.accent,
             brushes,
             s,
+            false,
         );
         let delay_value = if tempo_sync {
             format!("{:.0} ms", synced_delay_ms(note_param, dev_param))
@@ -758,6 +759,7 @@ impl NativeWindowState {
                 accent,
                 brushes,
                 s,
+                control.is_reverse_arc(),
             );
             draw_value_box(
                 rt,
@@ -811,6 +813,7 @@ impl NativeWindowState {
             &brushes.accent,
             brushes,
             s,
+            false,
         );
         draw_value_box(
             rt,
@@ -847,6 +850,7 @@ impl NativeWindowState {
             &brushes.magenta,
             brushes,
             s,
+            false,
         );
         draw_value_box(
             rt,
@@ -878,6 +882,7 @@ impl NativeWindowState {
             &brushes.magenta,
             brushes,
             s,
+            false,
         );
         draw_value_box(
             rt,
@@ -998,6 +1003,7 @@ impl NativeWindowState {
             &brushes.green,
             brushes,
             s,
+            false,
         );
         draw_value_box(
             rt,
@@ -1028,6 +1034,7 @@ impl NativeWindowState {
             &brushes.green,
             brushes,
             s,
+            false,
         );
         draw_value_box(
             rt,
@@ -2673,6 +2680,10 @@ impl FloatControl {
         matches!(self, Self::HighCutL | Self::HighCutR)
     }
 
+    fn is_reverse_arc(self) -> bool {
+        self.is_lpf_cut()
+    }
+
     fn is_meter_trim(self) -> bool {
         matches!(self, Self::InputLevel | Self::OutputLevel)
     }
@@ -3125,6 +3136,7 @@ impl UiRect {
 #[derive(Clone)]
 struct TextFormats {
     tiny: IDWriteTextFormat,
+    meter_value: IDWriteTextFormat,
     small: IDWriteTextFormat,
     body: IDWriteTextFormat,
     title: IDWriteTextFormat,
@@ -3135,6 +3147,7 @@ impl TextFormats {
         let s = scale.clamp(0.7, 3.0);
         Some(Self {
             tiny: create_text_format(factory, 9.5 * s, false)?,
+            meter_value: create_text_format(factory, 7.4 * s, false)?,
             small: create_text_format(factory, 11.0 * s, false)?,
             body: create_text_format(factory, 13.0 * s, false)?,
             title: create_text_format(factory, 18.0 * s, true)?,
@@ -3397,6 +3410,7 @@ fn draw_knob(
     accent: &ID2D1SolidColorBrush,
     brushes: &Brushes,
     s: f32,
+    reverse_arc: bool,
 ) {
     let norm = norm.clamp(0.0, 1.0);
     let angle = ARC_START + ARC_SWEEP * norm;
@@ -3413,7 +3427,21 @@ fn draw_knob(
         &brushes.border,
         3.3 * s,
     );
-    draw_arc(rt, cx, cy, radius * 0.72, ARC_START, angle, accent, 3.0 * s);
+    let arc_anchor = if reverse_arc {
+        ARC_START + ARC_SWEEP
+    } else {
+        ARC_START
+    };
+    draw_arc(
+        rt,
+        cx,
+        cy,
+        radius * 0.72,
+        arc_anchor,
+        angle,
+        accent,
+        3.0 * s,
+    );
     let dot_x = cx + radius * 0.52 * angle.cos();
     let dot_y = cy + radius * 0.52 * angle.sin();
     fill_circle(rt, dot_x, dot_y, 4.2 * s, accent);
@@ -3497,6 +3525,25 @@ fn draw_value_box(
     formats: &TextFormats,
 ) {
     draw_value_box_state(rt, rect, label, true, brushes, formats);
+}
+
+fn draw_meter_value_box(
+    rt: &ID2D1HwndRenderTarget,
+    rect: UiRect,
+    label: &str,
+    brushes: &Brushes,
+    formats: &TextFormats,
+) {
+    fill_round(rt, rect, 4.0, &brushes.bg);
+    stroke_round(rt, rect, 4.0, &brushes.border, 1.0);
+    draw_text(
+        rt,
+        label,
+        rect,
+        &formats.meter_value,
+        &brushes.text_primary,
+        Align::Center,
+    );
 }
 
 fn draw_value_box_state(

@@ -14,7 +14,7 @@ use crate::parameters::{
     InputModeParam, NebulaStereoDelayParams, NoteValueParam, OversamplingParam, RoutingModeParam,
 };
 
-const PRESET_VERSION: &str = "1.0.0";
+const PRESET_VERSION: &str = "1.1.0";
 const FACTORY_AUTHOR: &str = "Nebula Audio";
 const FACTORY_CREATED: &str = "2026-05-19T00:00:00Z";
 
