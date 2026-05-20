@@ -4627,7 +4627,7 @@ fn invalidate(hwnd: HWND) {
 }
 
 fn class_name() -> PCWSTR {
-    w!("NebulaStereoDelayDirect2DEditor")
+    w!("NebulaAudio.NebulaDelay.Direct2D.Editor.v1")
 }
 
 fn module_instance() -> Option<HINSTANCE> {
