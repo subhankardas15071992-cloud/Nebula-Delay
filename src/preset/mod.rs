@@ -10,9 +10,7 @@ use std::path::{Path, PathBuf};
 use nih_plug::params::enums::Enum;
 use serde::{Deserialize, Serialize};
 
-use crate::parameters::{
-    InputModeParam, NebulaStereoDelayParams, NoteValueParam, OversamplingParam, RoutingModeParam,
-};
+use crate::parameters::{NebulaDelayParams, NoteValueParam, OversamplingParam};
 
 const PRESET_VERSION: &str = "1.1.0";
 const FACTORY_AUTHOR: &str = "Nebula Audio";
@@ -231,54 +229,31 @@ impl PresetManager {
     pub fn load_preset(
         &self,
         preset: &PresetData,
-        params: &NebulaStereoDelayParams,
+        params: &NebulaDelayParams,
         setter: &nih_plug::prelude::ParamSetter,
     ) {
         let v = &preset.values;
 
         setter.set_parameter(&params.input_level, v.input_level_db);
         setter.set_parameter(&params.output_level, v.output_level_db);
-        setter.set_parameter(&params.input_mode_l, InputModeParam::Left);
-        setter.set_parameter(&params.input_mode_r, InputModeParam::Off);
         setter.set_parameter(&params.delay_time_l, v.delay_time_l);
-        setter.set_parameter(&params.delay_time_r, v.delay_time_l);
         setter.set_parameter(
             &params.note_l,
             NoteValueParam::from_index(v.note_l as usize),
         );
-        setter.set_parameter(
-            &params.note_r,
-            NoteValueParam::from_index(v.note_l as usize),
-        );
-        setter.set_parameter(&params.deviation_l, 0.0);
-        setter.set_parameter(&params.deviation_r, 0.0);
         setter.set_parameter(&params.halve_l, v.halve_l);
-        setter.set_parameter(&params.halve_r, false);
         setter.set_parameter(&params.double_l, v.double_l);
-        setter.set_parameter(&params.double_r, false);
         setter.set_parameter(&params.low_cut_l, v.low_cut_l);
-        setter.set_parameter(&params.low_cut_r, v.low_cut_l);
         setter.set_parameter(&params.low_cut_slope_l, v.low_cut_slope_l);
-        setter.set_parameter(&params.low_cut_slope_r, v.low_cut_slope_l);
         setter.set_parameter(&params.high_cut_l, v.high_cut_l);
-        setter.set_parameter(&params.high_cut_r, v.high_cut_l);
         setter.set_parameter(&params.high_cut_slope_l, v.high_cut_slope_l);
-        setter.set_parameter(&params.high_cut_slope_r, v.high_cut_slope_l);
         setter.set_parameter(&params.feedback_l, v.feedback_l);
-        setter.set_parameter(&params.feedback_r, 0.0);
         setter.set_parameter(&params.feedback_phase_l, v.feedback_phase_l);
-        setter.set_parameter(&params.feedback_phase_r, false);
-        setter.set_parameter(&params.crossfeed_lr, 0.0);
-        setter.set_parameter(&params.crossfeed_rl, 0.0);
-        setter.set_parameter(&params.crossfeed_phase_lr, false);
-        setter.set_parameter(&params.crossfeed_phase_rl, false);
-        setter.set_parameter(&params.routing, RoutingModeParam::Straight);
         setter.set_parameter(
             &params.oversampling,
             OversamplingParam::from_index(v.oversampling as usize),
         );
         setter.set_parameter(&params.tempo_sync, v.tempo_sync);
-        setter.set_parameter(&params.stereo_link, false);
         setter.set_parameter(&params.output_mix_l, v.output_mix_l);
         setter.set_parameter(&params.output_mix_r, v.output_mix_r);
     }

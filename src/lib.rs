@@ -33,7 +33,7 @@ use crate::dsp::{DelayEngine, InputMode, RoutingMode};
 #[cfg(feature = "plugin")]
 use crate::midi::{sync_runtime_from_learn_state, MidiRuntime, MidiTarget};
 #[cfg(feature = "plugin")]
-use crate::parameters::NebulaStereoDelayParams;
+use crate::parameters::NebulaDelayParams;
 #[cfg(feature = "plugin")]
 use crate::preset::PresetManager;
 #[cfg(feature = "plugin")]
@@ -70,7 +70,7 @@ fn flush_denormal_f32(x: f32) -> f32 {
 
 #[cfg(feature = "plugin")]
 pub struct NebulaDelay {
-    params: Arc<NebulaStereoDelayParams>,
+    params: Arc<NebulaDelayParams>,
     engine: DelayEngine,
     state_manager: StateManager,
     meters: Arc<MeterValues>,
@@ -84,7 +84,7 @@ pub struct NebulaDelay {
 #[cfg(feature = "plugin")]
 impl Default for NebulaDelay {
     fn default() -> Self {
-        let params = Arc::new(NebulaStereoDelayParams::default());
+        let params = Arc::new(NebulaDelayParams::default());
         let meters = Arc::new(MeterValues::new());
         let sample_rate = 44_100.0;
         let mut engine = DelayEngine::new(sample_rate * MAX_OVERSAMPLING_FACTOR as f64);

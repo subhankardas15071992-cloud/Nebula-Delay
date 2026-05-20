@@ -1,4 +1,4 @@
-//! State management module for **Nebula Stereo Delay** by Nebula Audio.
+//! State management module for **Nebula Delay** by Nebula Audio.
 //!
 //! This module provides the high-level state management layer that sits above
 //! the [`crate::parameters`] module. Whereas `parameters` defines the
@@ -70,7 +70,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::parameters::NebulaStereoDelayParams;
+use crate::parameters::NebulaDelayParams;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Constants
@@ -346,7 +346,7 @@ impl Default for SpectrumData {
 // State Manager
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// High-level state manager for the **Nebula Stereo Delay** plugin.
+/// High-level state manager for the **Nebula Delay** plugin.
 ///
 /// Owns the lock-free meter values and spectrum analyser data that are shared
 /// between the audio thread and the GUI thread. The `parameters` field
@@ -382,18 +382,18 @@ pub struct StateManager {
     /// A/B and update meters") can access the parameter surface through the
     /// state manager, keeping the API surface small and cohesive. The A/B
     /// and undo/redo logic itself lives in the `parameters` module.
-    pub parameters: std::sync::Arc<NebulaStereoDelayParams>,
+    pub parameters: std::sync::Arc<NebulaDelayParams>,
 }
 
 impl StateManager {
     /// Create a new `StateManager` bound to the given parameter struct.
-    pub fn new(params: std::sync::Arc<NebulaStereoDelayParams>) -> Self {
+    pub fn new(params: std::sync::Arc<NebulaDelayParams>) -> Self {
         Self::with_meters(params, Arc::new(MeterValues::new()))
     }
 
     /// Create a new `StateManager` with a caller-owned meter block.
     pub fn with_meters(
-        params: std::sync::Arc<NebulaStereoDelayParams>,
+        params: std::sync::Arc<NebulaDelayParams>,
         meters: Arc<MeterValues>,
     ) -> Self {
         Self {
@@ -828,7 +828,7 @@ mod tests {
 
     #[test]
     fn state_manager_update_meters() {
-        let params = std::sync::Arc::new(NebulaStereoDelayParams::default());
+        let params = std::sync::Arc::new(NebulaDelayParams::default());
         let sm = StateManager::new(params);
 
         sm.update_meters(0.2, -0.4, 0.3, -0.7, 0.1, -0.9);
@@ -844,7 +844,7 @@ mod tests {
     #[test]
     fn state_manager_compute_spectrum_short_buffer() {
         // Buffer shorter than FFT_SIZE should be zero-padded.
-        let params = std::sync::Arc::new(NebulaStereoDelayParams::default());
+        let params = std::sync::Arc::new(NebulaDelayParams::default());
         let sm = StateManager::new(params);
 
         let buf_l = vec![1.0; 64];
@@ -863,7 +863,7 @@ mod tests {
 
     #[test]
     fn state_manager_compute_spectrum_exact_fft_size() {
-        let params = std::sync::Arc::new(NebulaStereoDelayParams::default());
+        let params = std::sync::Arc::new(NebulaDelayParams::default());
         let sm = StateManager::new(params);
 
         let buf_l = vec![0.5; FFT_SIZE];
@@ -891,7 +891,7 @@ mod tests {
     fn state_manager_compute_spectrum_long_buffer() {
         // Buffer longer than FFT_SIZE: only the last FFT_SIZE samples
         // should be used.
-        let params = std::sync::Arc::new(NebulaStereoDelayParams::default());
+        let params = std::sync::Arc::new(NebulaDelayParams::default());
         let sm = StateManager::new(params);
 
         let mut buf_l = vec![0.0; 1024];

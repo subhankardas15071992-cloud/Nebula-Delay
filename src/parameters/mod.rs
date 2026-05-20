@@ -1,18 +1,16 @@
 //! Parameters module for **Nebula Delay** by Nebula Audio.
 //!
-//! Defines all plugin parameters using nih_plug's parameter system, including
-//! per-channel delay parameters, crossfeed controls, routing modes, and
-//! global options. Internal (non-automatable) state such as A/B snapshots,
+//! Defines all host-visible parameters for the mono delay using nih_plug's
+//! parameter system. Internal (non-automatable) state such as A/B snapshots,
 //! undo/redo history, and MIDI learn mappings are also housed here.
 //!
 //! # Parameter Organisation
 //!
 //! | Group               | Parameters                                              |
 //! |---------------------|---------------------------------------------------------|
-//! | Per-Channel (L/R)   | Input mode, delay time, note, deviation, halve/double,  |
-//! |                     | low/high cut, feedback, feedback phase                   |
-//! | Crossfeed           | L→R amount/phase, R→L amount/phase                     |
-//! | Global / Output     | Routing, oversampling, tempo sync, stereo link, output levels |
+//! | Delay               | Delay time, note, halve/double, feedback, phase invert  |
+//! | Filter              | HPF/LPF frequency and slope                              |
+//! | Global / Output     | Oversampling, tempo sync, dry/wet levels                |
 //! | Internal State      | FX bypass, A/B snapshots, undo/redo, MIDI learn         |
 //!
 //! # Stable IDs
@@ -265,8 +263,8 @@ impl OversamplingParam {
 /// and undo/redo.
 ///
 /// Each field stores the **plain** (un-normalised) value exactly as it
-/// appears to the user — e.g., `delay_time_l` is in seconds, `feedback_l`
-/// is 0.0–1.0, enums are stored by variant index.
+/// appears to the user: delay time is in seconds, feedback/dry/wet are
+/// 0.0-1.0, and enums are stored by variant index.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParamSnapshot {
     // ── Global level trims ───────────────────────────────────────────
@@ -275,46 +273,22 @@ pub struct ParamSnapshot {
     #[serde(default)]
     pub output_level_db: f32,
 
-    // ── Per-channel ──────────────────────────────────────────────────
-    pub input_mode_l: usize,
-    pub input_mode_r: usize,
+    // ── Mono delay ───────────────────────────────────────────────────
     pub delay_time_l: f32,
-    pub delay_time_r: f32,
     pub note_l: usize,
-    pub note_r: usize,
-    pub deviation_l: f32,
-    pub deviation_r: f32,
     pub halve_l: bool,
-    pub halve_r: bool,
     pub double_l: bool,
-    pub double_r: bool,
     pub low_cut_l: f32,
-    pub low_cut_r: f32,
     pub low_cut_slope_l: f32,
-    pub low_cut_slope_r: f32,
     pub high_cut_l: f32,
-    pub high_cut_r: f32,
     pub high_cut_slope_l: f32,
-    pub high_cut_slope_r: f32,
     pub feedback_l: f32,
-    pub feedback_r: f32,
     pub feedback_phase_l: bool,
-    pub feedback_phase_r: bool,
-
-    // ── Crossfeed ────────────────────────────────────────────────────
-    pub crossfeed_lr: f32,
-    pub crossfeed_rl: f32,
-    #[serde(default, alias = "crossfeed_phase")]
-    pub crossfeed_phase_lr: bool,
-    #[serde(default)]
-    pub crossfeed_phase_rl: bool,
 
     // ── Global / Output ──────────────────────────────────────────────
-    pub routing: usize,
     #[serde(default)]
     pub oversampling: usize,
     pub tempo_sync: bool,
-    pub stereo_link: bool,
     pub output_mix_l: f32,
     pub output_mix_r: f32,
 }
@@ -342,38 +316,18 @@ impl ParamSnapshot {
         Self {
             input_level_db: 0.0,
             output_level_db: 0.0,
-            input_mode_l: 1, // Left
-            input_mode_r: 2, // Right
             delay_time_l: 0.5,
-            delay_time_r: 0.5,
             note_l: 3, // Quarter
-            note_r: 3,
-            deviation_l: 0.0,
-            deviation_r: 0.0,
             halve_l: false,
-            halve_r: false,
             double_l: false,
-            double_r: false,
             low_cut_l: 20.0,
-            low_cut_r: 20.0,
             low_cut_slope_l: 12.0,
-            low_cut_slope_r: 12.0,
             high_cut_l: 20000.0,
-            high_cut_r: 20000.0,
             high_cut_slope_l: 12.0,
-            high_cut_slope_r: 12.0,
             feedback_l: 0.4,
-            feedback_r: 0.4,
             feedback_phase_l: false,
-            feedback_phase_r: false,
-            crossfeed_lr: 0.0,
-            crossfeed_rl: 0.0,
-            crossfeed_phase_lr: false,
-            crossfeed_phase_rl: false,
-            routing: 1,      // Straight
             oversampling: 0, // Off
             tempo_sync: false,
-            stereo_link: false,
             output_mix_l: 1.0,
             output_mix_r: 1.0,
         }
@@ -445,16 +399,6 @@ fn parse_delay_time(s: &str) -> Option<f32> {
     } else {
         trimmed.parse::<f32>().ok().map(|v| v / 1000.0)
     }
-}
-
-/// Format a deviation value in cents with 1 decimal place.
-fn format_deviation(val: f32) -> String {
-    format!("{val:.1}")
-}
-
-/// Parse a deviation string (e.g., "0.0" or "0.0 ct").
-fn parse_deviation(s: &str) -> Option<f32> {
-    s.trim().trim_end_matches("ct").trim().parse::<f32>().ok()
 }
 
 /// Format a frequency, switching between Hz and kHz for readability.
@@ -544,13 +488,6 @@ fn parse_gain_db(s: &str) -> Option<f32> {
 /// continuous DSP coefficient has a 10 ms linear smoother attached to
 /// prevent zipper noise.
 ///
-/// # Per-Channel Parameters (L/R)
-///
-/// Each left/right pair uses the same range and step size. The left
-/// channel defaults to a "Left" input and the right channel to a "Right"
-/// input so the plugin works as a standard stereo delay without any
-/// configuration.
-///
 /// # Internal State
 ///
 /// Fields marked with `#[persist]` are serialised alongside preset data
@@ -558,13 +495,8 @@ fn parse_gain_db(s: &str) -> Option<f32> {
 /// includes the FX bypass flag, A/B snapshot bank, undo/redo history,
 /// and MIDI-learn mappings.
 ///
-/// # Stereo Link
-///
-/// When `stereo_link` is enabled, editor gestures move the corresponding
-/// left/right parameters together while preserving their ratio where possible.
-/// The Ctrl/Cmd modifier temporarily overrides this link.
 #[derive(Params)]
-pub struct NebulaStereoDelayParams {
+pub struct NebulaDelayParams {
     // ── Global: Input/Output Level ──────────────────────────────────────
     /// Input trim before the delay network, in dB. Default: 0 dB.
     #[id = "inlvl"]
@@ -574,151 +506,59 @@ pub struct NebulaStereoDelayParams {
     #[id = "outlvl"]
     pub output_level: FloatParam,
 
-    // ── Per-Channel: Input Mode ──────────────────────────────────────────
-    /// Input source for the left delay channel. Default: **Left**.
-    #[id = "iml"]
-    pub input_mode_l: EnumParam<InputModeParam>,
-
-    /// Input source for the right delay channel. Default: **Right**.
-    #[id = "imr"]
-    pub input_mode_r: EnumParam<InputModeParam>,
-
-    // ── Per-Channel: Delay Time ──────────────────────────────────────────
-    /// Base delay time for the left channel in seconds (0.005–2.0).
+    // ── Delay Time ───────────────────────────────────────────────────────
+    /// Base delay time in seconds (0.005-2.0).
     /// Used when `tempo_sync` is off. Default: 0.5 s.
     #[id = "dtl"]
     pub delay_time_l: FloatParam,
 
-    /// Base delay time for the right channel in seconds (0.005–2.0).
-    /// Used when `tempo_sync` is off. Default: 0.5 s.
-    #[id = "dtr"]
-    pub delay_time_r: FloatParam,
-
-    // ── Per-Channel: Tempo-Sync Note ─────────────────────────────────────
-    /// Note value for the left channel (used when `tempo_sync` is on).
+    // ── Tempo-Sync Note ──────────────────────────────────────────────────
+    /// Note value used when `tempo_sync` is on.
     /// Default: 1/4 (quarter note).
     #[id = "ntl"]
     pub note_l: EnumParam<NoteValueParam>,
 
-    /// Note value for the right channel (used when `tempo_sync` is on).
-    /// Default: 1/4 (quarter note).
-    #[id = "ntr"]
-    pub note_r: EnumParam<NoteValueParam>,
-
-    // ── Per-Channel: Deviation ───────────────────────────────────────────
-    /// Deviation from the quantised delay time for the left channel in
-    /// cents (−100 to +100). Applied as `2^(deviation/1200)`.
-    /// Default: 0 ct.
-    #[id = "dvl"]
-    pub deviation_l: FloatParam,
-
-    /// Deviation from the quantised delay time for the right channel in
-    /// cents (−100 to +100). Default: 0 ct.
-    #[id = "dvr"]
-    pub deviation_r: FloatParam,
-
-    // ── Per-Channel: Halve / Double ──────────────────────────────────────
-    /// Halve the left-channel delay time (the ":2" button).
+    // ── Halve / Double ───────────────────────────────────────────────────
+    /// Halve the delay time (the ":2" button).
     /// Default: off.
     #[id = "hvl"]
     pub halve_l: BoolParam,
 
-    /// Halve the right-channel delay time (the ":2" button).
-    /// Default: off.
-    #[id = "hvr"]
-    pub halve_r: BoolParam,
-
-    /// Double the left-channel delay time (the "×2" button).
+    /// Double the delay time (the "x2" button).
     /// Default: off.
     #[id = "dbl"]
     pub double_l: BoolParam,
 
-    /// Double the right-channel delay time (the "×2" button).
-    /// Default: off.
-    #[id = "dbr"]
-    pub double_r: BoolParam,
-
-    // ── Per-Channel: Filters ─────────────────────────────────────────────
-    /// Low-cut (high-pass) frequency for the left channel (20–20 000 Hz).
+    // ── Filters ──────────────────────────────────────────────────────────
+    /// Low-cut (high-pass) frequency (20-20 000 Hz).
     /// Default: 20 Hz (effectively off).
     #[id = "lcl"]
     pub low_cut_l: FloatParam,
 
-    /// Low-cut (high-pass) frequency for the right channel (20–20 000 Hz).
-    /// Default: 20 Hz.
-    #[id = "lcr"]
-    pub low_cut_r: FloatParam,
-
-    /// Low-cut slope for the left channel (1–100 dB/oct).
+    /// Low-cut slope (1-100 dB/oct).
     /// Default: 12 dB/oct.
     #[id = "lcsl"]
     pub low_cut_slope_l: FloatParam,
 
-    /// Low-cut slope for the right channel (1–100 dB/oct).
-    /// Default: 12 dB/oct.
-    #[id = "lcsr"]
-    pub low_cut_slope_r: FloatParam,
-
-    /// High-cut (low-pass) frequency for the left channel (20–20 000 Hz).
+    /// High-cut (low-pass) frequency (20-20 000 Hz).
     /// Default: 20 000 Hz (effectively off).
     #[id = "hcl"]
     pub high_cut_l: FloatParam,
 
-    /// High-cut (low-pass) frequency for the right channel (20–20 000 Hz).
-    /// Default: 20 000 Hz.
-    #[id = "hcr"]
-    pub high_cut_r: FloatParam,
-
-    /// High-cut slope for the left channel (1–100 dB/oct).
+    /// High-cut slope (1-100 dB/oct).
     /// Default: 12 dB/oct.
     #[id = "hcsl"]
     pub high_cut_slope_l: FloatParam,
 
-    /// High-cut slope for the right channel (1–100 dB/oct).
-    /// Default: 12 dB/oct.
-    #[id = "hcsr"]
-    pub high_cut_slope_r: FloatParam,
-
-    // ── Per-Channel: Feedback ────────────────────────────────────────────
-    /// Feedback amount for the left channel (0.0–1.0). Default: 0.4 (40%).
+    // ── Feedback ─────────────────────────────────────────────────────────
+    /// Feedback amount (0.0-1.0). Default: 0.4 (40%).
     #[id = "fbl"]
     pub feedback_l: FloatParam,
 
-    /// Feedback amount for the right channel (0.0–1.0). Default: 0.4 (40%).
-    #[id = "fbr"]
-    pub feedback_r: FloatParam,
-
-    /// Invert left-channel feedback phase (180° flip).
+    /// Invert the wet delay signal phase (180 degree flip).
     /// Display: "Normal" / "Inverted". Default: Normal.
     #[id = "fpl"]
     pub feedback_phase_l: BoolParam,
-
-    /// Invert right-channel feedback phase (180° flip).
-    /// Display: "Normal" / "Inverted". Default: Normal.
-    #[id = "fpr"]
-    pub feedback_phase_r: BoolParam,
-
-    // ── Crossfeed ────────────────────────────────────────────────────────
-    /// L→R crossfeed amount (0.0–1.0). Default: 0.0 (0%).
-    #[id = "clr"]
-    pub crossfeed_lr: FloatParam,
-
-    /// R→L crossfeed amount (0.0–1.0). Default: 0.0 (0%).
-    #[id = "crl"]
-    pub crossfeed_rl: FloatParam,
-
-    /// Invert the L→R crossfeed phase. Default: Normal.
-    #[id = "cfp"]
-    pub crossfeed_phase_lr: BoolParam,
-
-    /// Invert the R→L crossfeed phase. Default: Normal.
-    #[id = "cfpr"]
-    pub crossfeed_phase_rl: BoolParam,
-
-    // ── Global: Routing ──────────────────────────────────────────────────
-    /// Active routing mode. Default: Straight.
-    #[id = "rout"]
-    pub routing: EnumParam<RoutingModeParam>,
 
     // ── Global: Oversampling ─────────────────────────────────────────────
     /// Internal DSP oversampling. Default: Off.
@@ -730,13 +570,6 @@ pub struct NebulaStereoDelayParams {
     /// selected note value. Display: "Free" / "Sync". Default: Free.
     #[id = "tsyn"]
     pub tempo_sync: BoolParam,
-
-    // ── Global: Stereo Link ──────────────────────────────────────────────
-    /// When enabled, linked editor gestures preserve relative L/R ratios where possible.
-    /// Display: "Unlinked" / "Linked". Default: Unlinked.
-    /// Ctrl/Cmd modifier allows temporary unlink.
-    #[id = "slnk"]
-    pub stereo_link: BoolParam,
 
     // ── Global: Output Levels ────────────────────────────────────────────
     /// Dry signal level for the mono output path.
@@ -776,7 +609,7 @@ pub struct NebulaStereoDelayParams {
     pub midi_learn: RwLock<MidiLearnState>,
 }
 
-impl Default for NebulaStereoDelayParams {
+impl Default for NebulaDelayParams {
     fn default() -> Self {
         // ── Smoothing time for continuous parameters ─────────────────
         // 10 ms linear smoothing prevents zipper noise without adding
@@ -822,13 +655,7 @@ impl Default for NebulaStereoDelayParams {
             .with_unit(" dB"),
 
             // ══════════════════════════════════════════════════════════
-            // Per-Channel: Input Mode
-            // ══════════════════════════════════════════════════════════
-            input_mode_l: EnumParam::new("Input Mode L", InputModeParam::Left).hide(),
-            input_mode_r: EnumParam::new("Input Mode R", InputModeParam::Off).hide(),
-
-            // ══════════════════════════════════════════════════════════
-            // Per-Channel: Delay Time
+            // Delay Time
             // ══════════════════════════════════════════════════════════
             delay_time_l: FloatParam::new(
                 "Delay Time",
@@ -844,62 +671,13 @@ impl Default for NebulaStereoDelayParams {
             .with_string_to_value(Arc::new(parse_delay_time))
             .with_unit(" ms"),
 
-            delay_time_r: FloatParam::new(
-                "Delay Time R",
-                0.5,
-                FloatRange::Linear {
-                    min: 0.005,
-                    max: 2.0,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_step_size(0.001)
-            .with_value_to_string(Arc::new(format_delay_time))
-            .with_string_to_value(Arc::new(parse_delay_time))
-            .with_unit(" ms")
-            .hide(),
-
             // ══════════════════════════════════════════════════════════
-            // Per-Channel: Tempo-Sync Note
+            // Tempo-Sync Note
             // ══════════════════════════════════════════════════════════
             note_l: EnumParam::new("Note", NoteValueParam::Quarter),
-            note_r: EnumParam::new("Note R", NoteValueParam::Quarter).hide(),
 
             // ══════════════════════════════════════════════════════════
-            // Per-Channel: Deviation
-            // ══════════════════════════════════════════════════════════
-            deviation_l: FloatParam::new(
-                "Deviation L",
-                0.0,
-                FloatRange::Linear {
-                    min: -100.0,
-                    max: 100.0,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_step_size(0.1)
-            .with_value_to_string(Arc::new(format_deviation))
-            .with_string_to_value(Arc::new(parse_deviation))
-            .with_unit(" ct")
-            .hide(),
-
-            deviation_r: FloatParam::new(
-                "Deviation R",
-                0.0,
-                FloatRange::Linear {
-                    min: -100.0,
-                    max: 100.0,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_step_size(0.1)
-            .with_value_to_string(Arc::new(format_deviation))
-            .with_string_to_value(Arc::new(parse_deviation))
-            .with_unit(" ct")
-            .hide(),
-
-            // ══════════════════════════════════════════════════════════
-            // Per-Channel: Halve / Double
+            // Halve / Double
             // ══════════════════════════════════════════════════════════
             halve_l: BoolParam::new("Halve", false)
                 .with_value_to_string(Arc::new(|v| {
@@ -914,20 +692,6 @@ impl Default for NebulaStereoDelayParams {
                     Some(s == ":2" || s == "on" || s == "true")
                 })),
 
-            halve_r: BoolParam::new("Halve R", false)
-                .with_value_to_string(Arc::new(|v| {
-                    if v {
-                        ":2".to_string()
-                    } else {
-                        "Off".to_string()
-                    }
-                }))
-                .with_string_to_value(Arc::new(|s| {
-                    let s = s.trim().to_lowercase();
-                    Some(s == ":2" || s == "on" || s == "true")
-                }))
-                .hide(),
-
             double_l: BoolParam::new("Double", false)
                 .with_value_to_string(Arc::new(|v| {
                     if v {
@@ -941,22 +705,8 @@ impl Default for NebulaStereoDelayParams {
                     Some(s == "x2" || s == "on" || s == "true")
                 })),
 
-            double_r: BoolParam::new("Double R", false)
-                .with_value_to_string(Arc::new(|v| {
-                    if v {
-                        "x2".to_string()
-                    } else {
-                        "Off".to_string()
-                    }
-                }))
-                .with_string_to_value(Arc::new(|s| {
-                    let s = s.trim().to_lowercase();
-                    Some(s == "x2" || s == "on" || s == "true")
-                }))
-                .hide(),
-
             // ══════════════════════════════════════════════════════════
-            // Per-Channel: Filters
+            // Filters
             // ══════════════════════════════════════════════════════════
             low_cut_l: FloatParam::new(
                 "HPF",
@@ -970,20 +720,6 @@ impl Default for NebulaStereoDelayParams {
             .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
             .with_value_to_string(Arc::new(format_frequency))
             .with_string_to_value(Arc::new(parse_frequency)),
-
-            low_cut_r: FloatParam::new(
-                "Low Cut R",
-                20.0,
-                FloatRange::Skewed {
-                    min: 20.0,
-                    max: 20000.0,
-                    factor: freq_skew,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_value_to_string(Arc::new(format_frequency))
-            .with_string_to_value(Arc::new(parse_frequency))
-            .hide(),
 
             low_cut_slope_l: FloatParam::new(
                 "HPFS",
@@ -999,21 +735,6 @@ impl Default for NebulaStereoDelayParams {
             .with_string_to_value(Arc::new(parse_slope))
             .with_unit(" dB/oct"),
 
-            low_cut_slope_r: FloatParam::new(
-                "Low Cut Slope R",
-                12.0,
-                FloatRange::Linear {
-                    min: 1.0,
-                    max: 100.0,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_step_size(0.1)
-            .with_value_to_string(Arc::new(format_slope))
-            .with_string_to_value(Arc::new(parse_slope))
-            .with_unit(" dB/oct")
-            .hide(),
-
             high_cut_l: FloatParam::new(
                 "LPF",
                 20000.0,
@@ -1026,20 +747,6 @@ impl Default for NebulaStereoDelayParams {
             .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
             .with_value_to_string(Arc::new(format_frequency))
             .with_string_to_value(Arc::new(parse_frequency)),
-
-            high_cut_r: FloatParam::new(
-                "High Cut R",
-                20000.0,
-                FloatRange::Skewed {
-                    min: 20.0,
-                    max: 20000.0,
-                    factor: freq_skew,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_value_to_string(Arc::new(format_frequency))
-            .with_string_to_value(Arc::new(parse_frequency))
-            .hide(),
 
             high_cut_slope_l: FloatParam::new(
                 "LPFS",
@@ -1055,23 +762,8 @@ impl Default for NebulaStereoDelayParams {
             .with_string_to_value(Arc::new(parse_slope))
             .with_unit(" dB/oct"),
 
-            high_cut_slope_r: FloatParam::new(
-                "High Cut Slope R",
-                12.0,
-                FloatRange::Linear {
-                    min: 1.0,
-                    max: 100.0,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_step_size(0.1)
-            .with_value_to_string(Arc::new(format_slope))
-            .with_string_to_value(Arc::new(parse_slope))
-            .with_unit(" dB/oct")
-            .hide(),
-
             // ══════════════════════════════════════════════════════════
-            // Per-Channel: Feedback
+            // Feedback
             // ══════════════════════════════════════════════════════════
             feedback_l: FloatParam::new("Feedback", 0.4, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
@@ -1079,18 +771,6 @@ impl Default for NebulaStereoDelayParams {
                 .with_value_to_string(Arc::new(format_percentage))
                 .with_string_to_value(Arc::new(parse_percentage))
                 .with_unit("%"),
-
-            feedback_r: FloatParam::new(
-                "Feedback R",
-                0.4,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_step_size(0.01)
-            .with_value_to_string(Arc::new(format_percentage))
-            .with_string_to_value(Arc::new(parse_percentage))
-            .with_unit("%")
-            .hide(),
 
             feedback_phase_l: BoolParam::new("Phase Invert", false)
                 .with_value_to_string(Arc::new(|v| {
@@ -1104,80 +784,6 @@ impl Default for NebulaStereoDelayParams {
                     let s = s.trim().to_lowercase();
                     Some(s == "inverted" || s == "inv" || s == "on" || s == "true")
                 })),
-
-            feedback_phase_r: BoolParam::new("Feedback Phase R", false)
-                .with_value_to_string(Arc::new(|v| {
-                    if v {
-                        "Inverted".to_string()
-                    } else {
-                        "Normal".to_string()
-                    }
-                }))
-                .with_string_to_value(Arc::new(|s| {
-                    let s = s.trim().to_lowercase();
-                    Some(s == "inverted" || s == "inv" || s == "on" || s == "true")
-                }))
-                .hide(),
-
-            // ══════════════════════════════════════════════════════════
-            // Crossfeed
-            // ══════════════════════════════════════════════════════════
-            crossfeed_lr: FloatParam::new(
-                "Crossfeed L-R",
-                0.0,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_step_size(0.01)
-            .with_value_to_string(Arc::new(format_percentage))
-            .with_string_to_value(Arc::new(parse_percentage))
-            .with_unit("%")
-            .hide(),
-
-            crossfeed_rl: FloatParam::new(
-                "Crossfeed R-L",
-                0.0,
-                FloatRange::Linear { min: 0.0, max: 1.0 },
-            )
-            .with_smoother(SmoothingStyle::Linear(SMOOTH_MS))
-            .with_step_size(0.01)
-            .with_value_to_string(Arc::new(format_percentage))
-            .with_string_to_value(Arc::new(parse_percentage))
-            .with_unit("%")
-            .hide(),
-
-            crossfeed_phase_lr: BoolParam::new("Crossfeed Phase L-R", false)
-                .with_value_to_string(Arc::new(|v| {
-                    if v {
-                        "Inverted".to_string()
-                    } else {
-                        "Normal".to_string()
-                    }
-                }))
-                .with_string_to_value(Arc::new(|s| {
-                    let s = s.trim().to_lowercase();
-                    Some(s == "inverted" || s == "inv" || s == "on" || s == "true")
-                }))
-                .hide(),
-
-            crossfeed_phase_rl: BoolParam::new("Crossfeed Phase R-L", false)
-                .with_value_to_string(Arc::new(|v| {
-                    if v {
-                        "Inverted".to_string()
-                    } else {
-                        "Normal".to_string()
-                    }
-                }))
-                .with_string_to_value(Arc::new(|s| {
-                    let s = s.trim().to_lowercase();
-                    Some(s == "inverted" || s == "inv" || s == "on" || s == "true")
-                }))
-                .hide(),
-
-            // ══════════════════════════════════════════════════════════
-            // Global: Routing
-            // ══════════════════════════════════════════════════════════
-            routing: EnumParam::new("Routing", RoutingModeParam::Straight).hide(),
 
             // ══════════════════════════════════════════════════════════
             // Global: Oversampling
@@ -1199,23 +805,6 @@ impl Default for NebulaStereoDelayParams {
                     let s = s.trim().to_lowercase();
                     Some(s == "sync" || s == "on" || s == "true")
                 })),
-
-            // ══════════════════════════════════════════════════════════
-            // Global: Stereo Link
-            // ══════════════════════════════════════════════════════════
-            stereo_link: BoolParam::new("Stereo Link", false)
-                .with_value_to_string(Arc::new(|v| {
-                    if v {
-                        "Linked".to_string()
-                    } else {
-                        "Unlinked".to_string()
-                    }
-                }))
-                .with_string_to_value(Arc::new(|s| {
-                    let s = s.trim().to_lowercase();
-                    Some(s == "linked" || s == "on" || s == "true")
-                }))
-                .hide(),
 
             // ══════════════════════════════════════════════════════════
             // Global: Output Levels
@@ -1254,7 +843,7 @@ impl Default for NebulaStereoDelayParams {
     }
 }
 
-impl NebulaStereoDelayParams {
+impl NebulaDelayParams {
     // ──────────────────────────────────────────────────────────────────
     // Snapshot helpers
     // ──────────────────────────────────────────────────────────────────
@@ -1268,38 +857,18 @@ impl NebulaStereoDelayParams {
         ParamSnapshot {
             input_level_db: self.input_level.value(),
             output_level_db: self.output_level.value(),
-            input_mode_l: self.input_mode_l.value().to_index(),
-            input_mode_r: self.input_mode_r.value().to_index(),
             delay_time_l: self.delay_time_l.value(),
-            delay_time_r: self.delay_time_r.value(),
             note_l: self.note_l.value().to_index(),
-            note_r: self.note_r.value().to_index(),
-            deviation_l: self.deviation_l.value(),
-            deviation_r: self.deviation_r.value(),
             halve_l: self.halve_l.value(),
-            halve_r: self.halve_r.value(),
             double_l: self.double_l.value(),
-            double_r: self.double_r.value(),
             low_cut_l: self.low_cut_l.value(),
-            low_cut_r: self.low_cut_r.value(),
             low_cut_slope_l: self.low_cut_slope_l.value(),
-            low_cut_slope_r: self.low_cut_slope_r.value(),
             high_cut_l: self.high_cut_l.value(),
-            high_cut_r: self.high_cut_r.value(),
             high_cut_slope_l: self.high_cut_slope_l.value(),
-            high_cut_slope_r: self.high_cut_slope_r.value(),
             feedback_l: self.feedback_l.value(),
-            feedback_r: self.feedback_r.value(),
-            feedback_phase_l: false,
-            feedback_phase_r: false,
-            crossfeed_lr: self.crossfeed_lr.value(),
-            crossfeed_rl: self.crossfeed_rl.value(),
-            crossfeed_phase_lr: self.crossfeed_phase_lr.value(),
-            crossfeed_phase_rl: self.crossfeed_phase_rl.value(),
-            routing: self.routing.value().to_index(),
+            feedback_phase_l: self.feedback_phase_l.value(),
             oversampling: self.oversampling.value().to_index(),
             tempo_sync: self.tempo_sync.value(),
-            stereo_link: self.stereo_link.value(),
             output_mix_l: self.output_mix_l.value(),
             output_mix_r: self.output_mix_r.value(),
         }
@@ -1330,51 +899,22 @@ impl NebulaStereoDelayParams {
         setter.set_parameter(&self.input_level, snapshot.input_level_db);
         setter.set_parameter(&self.output_level, snapshot.output_level_db);
         setter.set_parameter(&self.delay_time_l, snapshot.delay_time_l);
-        setter.set_parameter(&self.delay_time_r, snapshot.delay_time_r);
-        setter.set_parameter(&self.deviation_l, snapshot.deviation_l);
-        setter.set_parameter(&self.deviation_r, snapshot.deviation_r);
         setter.set_parameter(&self.low_cut_l, snapshot.low_cut_l);
-        setter.set_parameter(&self.low_cut_r, snapshot.low_cut_r);
         setter.set_parameter(&self.low_cut_slope_l, snapshot.low_cut_slope_l);
-        setter.set_parameter(&self.low_cut_slope_r, snapshot.low_cut_slope_r);
         setter.set_parameter(&self.high_cut_l, snapshot.high_cut_l);
-        setter.set_parameter(&self.high_cut_r, snapshot.high_cut_r);
         setter.set_parameter(&self.high_cut_slope_l, snapshot.high_cut_slope_l);
-        setter.set_parameter(&self.high_cut_slope_r, snapshot.high_cut_slope_r);
         setter.set_parameter(&self.feedback_l, snapshot.feedback_l);
-        setter.set_parameter(&self.feedback_r, snapshot.feedback_r);
-        setter.set_parameter(&self.crossfeed_lr, snapshot.crossfeed_lr);
-        setter.set_parameter(&self.crossfeed_rl, snapshot.crossfeed_rl);
         setter.set_parameter(&self.output_mix_l, snapshot.output_mix_l);
         setter.set_parameter(&self.output_mix_r, snapshot.output_mix_r);
 
         // Bool params
         setter.set_parameter(&self.halve_l, snapshot.halve_l);
-        setter.set_parameter(&self.halve_r, snapshot.halve_r);
         setter.set_parameter(&self.double_l, snapshot.double_l);
-        setter.set_parameter(&self.double_r, snapshot.double_r);
         setter.set_parameter(&self.feedback_phase_l, snapshot.feedback_phase_l);
-        setter.set_parameter(&self.feedback_phase_r, snapshot.feedback_phase_r);
-        setter.set_parameter(&self.crossfeed_phase_lr, snapshot.crossfeed_phase_lr);
-        setter.set_parameter(&self.crossfeed_phase_rl, snapshot.crossfeed_phase_rl);
         setter.set_parameter(&self.tempo_sync, snapshot.tempo_sync);
-        setter.set_parameter(&self.stereo_link, snapshot.stereo_link);
 
         // Enum params (set via variant index)
-        setter.set_parameter(
-            &self.input_mode_l,
-            InputModeParam::from_index(snapshot.input_mode_l),
-        );
-        setter.set_parameter(
-            &self.input_mode_r,
-            InputModeParam::from_index(snapshot.input_mode_r),
-        );
         setter.set_parameter(&self.note_l, NoteValueParam::from_index(snapshot.note_l));
-        setter.set_parameter(&self.note_r, NoteValueParam::from_index(snapshot.note_r));
-        setter.set_parameter(
-            &self.routing,
-            RoutingModeParam::from_index(snapshot.routing),
-        );
         setter.set_parameter(
             &self.oversampling,
             OversamplingParam::from_index(snapshot.oversampling),
@@ -1512,43 +1052,43 @@ impl NebulaStereoDelayParams {
         dsp::DelayParams {
             input_level_db: self.input_level.value() as f64,
             output_level_db: self.output_level.value() as f64,
-            input_mode_l: self.input_mode_l.value().into(),
-            input_mode_r: self.input_mode_r.value().into(),
+            input_mode_l: dsp::InputMode::Left,
+            input_mode_r: dsp::InputMode::Off,
             delay_time_l: self.delay_time_l.value() as f64,
-            delay_time_r: self.delay_time_r.value() as f64,
+            delay_time_r: 0.5,
             low_cut_l: self.low_cut_l.value() as f64,
-            low_cut_r: self.low_cut_r.value() as f64,
+            low_cut_r: 20.0,
             low_cut_slope_l: self.low_cut_slope_l.value() as f64,
-            low_cut_slope_r: self.low_cut_slope_r.value() as f64,
+            low_cut_slope_r: 12.0,
             high_cut_l: self.high_cut_l.value() as f64,
-            high_cut_r: self.high_cut_r.value() as f64,
+            high_cut_r: 20_000.0,
             high_cut_slope_l: self.high_cut_slope_l.value() as f64,
-            high_cut_slope_r: self.high_cut_slope_r.value() as f64,
+            high_cut_slope_r: 12.0,
             feedback_l: self.feedback_l.value() as f64,
-            feedback_r: self.feedback_r.value() as f64,
-            feedback_phase_l: self.feedback_phase_l.value(),
-            feedback_phase_r: self.feedback_phase_r.value(),
-            crossfeed_lr: self.crossfeed_lr.value() as f64,
-            crossfeed_rl: self.crossfeed_rl.value() as f64,
-            crossfeed_phase_lr: self.crossfeed_phase_lr.value(),
-            crossfeed_phase_rl: self.crossfeed_phase_rl.value(),
-            routing: self.routing.value().into(),
+            feedback_r: 0.0,
+            feedback_phase_l: false,
+            feedback_phase_r: false,
+            crossfeed_lr: 0.0,
+            crossfeed_rl: 0.0,
+            crossfeed_phase_lr: false,
+            crossfeed_phase_rl: false,
+            routing: dsp::RoutingMode::Straight,
             tempo_sync: self.tempo_sync.value(),
             tempo_bpm,
             note_l: self.note_l.value().into(),
-            note_r: self.note_r.value().into(),
-            deviation_l: self.deviation_l.value() as f64,
-            deviation_r: self.deviation_r.value() as f64,
+            note_r: self.note_l.value().into(),
+            deviation_l: 0.0,
+            deviation_r: 0.0,
             halve_l: self.halve_l.value(),
-            halve_r: self.halve_r.value(),
+            halve_r: false,
             double_l: self.double_l.value(),
-            double_r: self.double_r.value(),
+            double_r: false,
             output_mix_l: self.output_mix_l.value() as f64,
             output_mix_r: self.output_mix_r.value() as f64,
             wet_phase_l: self.feedback_phase_l.value(),
             wet_phase_r: false,
             bypass: self.is_bypassed(),
-            stereo_link: self.stereo_link.value(),
+            stereo_link: false,
         }
     }
 }
@@ -1671,19 +1211,6 @@ mod tests {
     }
 
     #[test]
-    fn format_deviation_values() {
-        assert_eq!(format_deviation(0.0), "0.0");
-        assert_eq!(format_deviation(-100.0), "-100.0");
-        assert_eq!(format_deviation(50.5), "50.5");
-    }
-
-    #[test]
-    fn parse_deviation_values() {
-        assert_eq!(parse_deviation("0.0"), Some(0.0));
-        assert_eq!(parse_deviation("-100.0 ct"), Some(-100.0));
-    }
-
-    #[test]
     fn format_frequency_values() {
         assert_eq!(format_frequency(20.0), "20.0 Hz");
         assert_eq!(format_frequency(1000.0), "1.00 kHz");
@@ -1752,15 +1279,11 @@ mod tests {
     #[test]
     fn snapshot_default_values() {
         let snap = ParamSnapshot::default_values();
-        assert_eq!(snap.input_mode_l, 1); // Left
-        assert_eq!(snap.input_mode_r, 2); // Right
-        assert_eq!(snap.routing, 1); // Straight
         assert_eq!(snap.delay_time_l, 0.5);
         assert_eq!(snap.feedback_l, 0.4);
         assert_eq!(snap.output_mix_l, 1.0);
         assert_eq!(snap.oversampling, 0);
         assert!(!snap.tempo_sync);
-        assert!(!snap.stereo_link);
     }
 
     // ── A/B snapshots default ──────────────────────────────────────

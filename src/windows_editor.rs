@@ -38,7 +38,7 @@ use windows::Win32::UI::HiDpi::{
     DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyState, ReleaseCapture, SetCapture, SetFocus, VK_BACK, VK_CONTROL, VK_ESCAPE, VK_RETURN,
+    ReleaseCapture, SetCapture, SetFocus, VK_BACK, VK_ESCAPE, VK_RETURN,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, GetClientRect, GetWindowLongPtrW, KillTimer,
@@ -55,7 +55,7 @@ use windows_numerics::Vector2;
 use crate::dsp::NoteValue;
 use crate::midi::{sync_runtime_from_learn_state, MidiRuntime, MidiTarget, MIDI_TARGET_COUNT};
 use crate::parameters::{
-    InputModeParam, NebulaStereoDelayParams, NoteValueParam, OversamplingParam, ParamSnapshot,
+    InputModeParam, NebulaDelayParams, NoteValueParam, OversamplingParam, ParamSnapshot,
     RoutingModeParam,
 };
 use crate::preset::{PresetManager, PresetValues};
@@ -73,7 +73,7 @@ const ARC_SWEEP: f32 = std::f32::consts::PI * 1.5;
 const ROUTE_EPS: f32 = 0.006;
 
 pub(super) fn create_editor(
-    params: Arc<NebulaStereoDelayParams>,
+    params: Arc<NebulaDelayParams>,
     midi_runtime: Arc<MidiRuntime>,
     meters: Arc<MeterValues>,
 ) -> Option<Box<dyn Editor>> {
@@ -91,7 +91,7 @@ pub(super) fn create_editor(
 }
 
 struct NativeEditor {
-    params: Arc<NebulaStereoDelayParams>,
+    params: Arc<NebulaDelayParams>,
     midi_runtime: Arc<MidiRuntime>,
     meters: Arc<MeterValues>,
     scale_bits: AtomicU32,
@@ -218,7 +218,7 @@ impl Drop for NativeWindowHandle {
 struct NativeWindowState {
     hwnd: HWND,
     parent_hwnd: HWND,
-    params: Arc<NebulaStereoDelayParams>,
+    params: Arc<NebulaDelayParams>,
     midi_runtime: Arc<MidiRuntime>,
     meters: Arc<MeterValues>,
     size_scale_bits: Arc<AtomicU32>,
@@ -242,7 +242,7 @@ struct NativeWindowState {
 
 impl NativeWindowState {
     fn new(
-        params: Arc<NebulaStereoDelayParams>,
+        params: Arc<NebulaDelayParams>,
         midi_runtime: Arc<MidiRuntime>,
         meters: Arc<MeterValues>,
         size_scale_bits: Arc<AtomicU32>,
@@ -286,7 +286,6 @@ impl NativeWindowState {
         let context = self.context.clone();
         let setter = ParamSetter::new(context.as_ref());
         self.drain_midi_runtime_to_gui(&setter);
-        self.sync_routing_display_to_parameters(&setter);
 
         let Some(rt) = self.ensure_render_target() else {
             return;
@@ -560,11 +559,7 @@ impl NativeWindowState {
             &brushes.accent,
             Align::Center,
         );
-        let note = if ch == Channel::Left {
-            EnumControl::NoteL
-        } else {
-            EnumControl::NoteR
-        };
+        let note = EnumControl::NoteL;
         let tempo_sync = self.params.tempo_sync.value();
         draw_text(
             rt,
@@ -606,21 +601,9 @@ impl NativeWindowState {
             &brushes.text_secondary,
             Align::Center,
         );
-        let delay_control = if ch == Channel::Left {
-            FloatControl::DelayTimeL
-        } else {
-            FloatControl::DelayTimeR
-        };
-        let note_param = if ch == Channel::Left {
-            self.params.note_l.value()
-        } else {
-            self.params.note_r.value()
-        };
-        let dev_param = if ch == Channel::Left {
-            self.params.deviation_l.value()
-        } else {
-            self.params.deviation_r.value()
-        };
+        let delay_control = FloatControl::DelayTimeL;
+        let note_param = self.params.note_l.value();
+        let dev_param = 0.0;
         let delay_norm = if tempo_sync {
             sync_knob_normalized(note_param, dev_param)
         } else {
@@ -708,7 +691,7 @@ impl NativeWindowState {
                 if ch == Channel::Left {
                     FloatControl::LowCutL
                 } else {
-                    FloatControl::LowCutR
+                    FloatControl::LowCutL
                 },
                 &brushes.accent,
             ),
@@ -717,7 +700,7 @@ impl NativeWindowState {
                 if ch == Channel::Left {
                     FloatControl::LowCutSlopeL
                 } else {
-                    FloatControl::LowCutSlopeR
+                    FloatControl::LowCutSlopeL
                 },
                 &brushes.purple,
             ),
@@ -726,7 +709,7 @@ impl NativeWindowState {
                 if ch == Channel::Left {
                     FloatControl::HighCutL
                 } else {
-                    FloatControl::HighCutR
+                    FloatControl::HighCutL
                 },
                 &brushes.orange,
             ),
@@ -735,7 +718,7 @@ impl NativeWindowState {
                 if ch == Channel::Left {
                     FloatControl::HighCutSlopeL
                 } else {
-                    FloatControl::HighCutSlopeR
+                    FloatControl::HighCutSlopeL
                 },
                 &brushes.magenta,
             ),
@@ -908,6 +891,7 @@ impl NativeWindowState {
         );
     }
 
+    #[cfg(any())]
     fn draw_global(
         &self,
         rt: &ID2D1HwndRenderTarget,
@@ -1670,11 +1654,11 @@ impl NativeWindowState {
 
     fn enum_value_label(&self, control: EnumControl) -> &'static str {
         match control {
-            EnumControl::InputL => input_mode_label(self.params.input_mode_l.value()),
-            EnumControl::InputR => input_mode_label(self.params.input_mode_r.value()),
+            EnumControl::InputL => "Left",
+            EnumControl::InputR => "Off",
             EnumControl::NoteL => note_label(self.params.note_l.value()),
-            EnumControl::NoteR => note_label(self.params.note_r.value()),
-            EnumControl::Routing => routing_label(self.params.routing.value()),
+            EnumControl::NoteR => note_label(self.params.note_l.value()),
+            EnumControl::Routing => "Straight",
             EnumControl::Oversampling => oversampling_label(self.params.oversampling.value()),
         }
     }
@@ -1758,26 +1742,12 @@ impl NativeWindowState {
         }
     }
 
-    fn begin_sync_gesture(&self, ch: Channel, setter: &ParamSetter<'_>) {
-        let (note, dev) = self.note_dev_params(ch);
-        setter.begin_set_parameter(note);
-        setter.begin_set_parameter(dev);
-        if self.stereo_link_active() {
-            let (note, dev) = self.note_dev_params(ch.other());
-            setter.begin_set_parameter(note);
-            setter.begin_set_parameter(dev);
-        }
+    fn begin_sync_gesture(&self, _ch: Channel, setter: &ParamSetter<'_>) {
+        setter.begin_set_parameter(&self.params.note_l);
     }
 
-    fn end_sync_gesture(&self, ch: Channel, setter: &ParamSetter<'_>) {
-        let (note, dev) = self.note_dev_params(ch);
-        setter.end_set_parameter(note);
-        setter.end_set_parameter(dev);
-        if self.stereo_link_active() {
-            let (note, dev) = self.note_dev_params(ch.other());
-            setter.end_set_parameter(note);
-            setter.end_set_parameter(dev);
-        }
+    fn end_sync_gesture(&self, _ch: Channel, setter: &ParamSetter<'_>) {
+        setter.end_set_parameter(&self.params.note_l);
     }
 
     fn set_float_display_norm(
@@ -1806,25 +1776,10 @@ impl NativeWindowState {
         }
     }
 
-    fn set_sync_norm(&self, ch: Channel, norm: f32, setter: &ParamSetter<'_>) {
-        let (note, dev) = self.note_dev_params(ch);
-        let old_ms = synced_delay_ms(note.value(), dev.value());
-        let (next_note, next_dev) = sync_from_norm(norm);
-        let next_ms = synced_delay_ms(next_note, next_dev);
-        setter.set_parameter(note, next_note);
-        setter.set_parameter(dev, next_dev);
-        if self.stereo_link_active() {
-            let (other_note, other_dev) = self.note_dev_params(ch.other());
-            let ratio = if old_ms > 0.000_001 {
-                (next_ms / old_ms).clamp(0.001, 1000.0)
-            } else {
-                1.0
-            };
-            let target_ms = synced_delay_ms(other_note.value(), other_dev.value()) * ratio;
-            let (on, od) = sync_from_ms(target_ms);
-            setter.set_parameter(other_note, on);
-            setter.set_parameter(other_dev, od);
-        }
+    fn set_sync_norm(&self, _ch: Channel, norm: f32, setter: &ParamSetter<'_>) {
+        let max = (note_variants().len() - 1) as f32;
+        let idx = (norm.clamp(0.0, 1.0) * max).round().clamp(0.0, max) as usize;
+        setter.set_parameter(&self.params.note_l, note_variants()[idx].0);
     }
 
     fn open_numeric_input(&mut self, control: FloatControl, layout: &Layout) {
@@ -1907,31 +1862,15 @@ impl NativeWindowState {
                 &self.params.tempo_sync,
                 !self.params.tempo_sync.value(),
             ),
-            BoolControl::StereoLink => set_bool_value(
-                setter,
-                &self.params.stereo_link,
-                !self.params.stereo_link.value(),
-            ),
+            BoolControl::StereoLink => {}
             BoolControl::FeedbackPhaseL => set_bool_value(
                 setter,
                 &self.params.feedback_phase_l,
                 !self.params.feedback_phase_l.value(),
             ),
-            BoolControl::FeedbackPhaseR => set_bool_value(
-                setter,
-                &self.params.feedback_phase_r,
-                !self.params.feedback_phase_r.value(),
-            ),
-            BoolControl::CrossfeedPhaseLr => set_bool_value(
-                setter,
-                &self.params.crossfeed_phase_lr,
-                !self.params.crossfeed_phase_lr.value(),
-            ),
-            BoolControl::CrossfeedPhaseRl => set_bool_value(
-                setter,
-                &self.params.crossfeed_phase_rl,
-                !self.params.crossfeed_phase_rl.value(),
-            ),
+            BoolControl::FeedbackPhaseR
+            | BoolControl::CrossfeedPhaseLr
+            | BoolControl::CrossfeedPhaseRl => {}
             BoolControl::Halve
             | BoolControl::Double
             | BoolControl::FeedbackPhase
@@ -1942,44 +1881,27 @@ impl NativeWindowState {
     fn bool_for_channel(&self, ch: Channel, control: BoolControl) -> bool {
         match (ch, control) {
             (Channel::Left, BoolControl::Halve) => self.params.halve_l.value(),
-            (Channel::Right, BoolControl::Halve) => self.params.halve_r.value(),
+            (Channel::Right, BoolControl::Halve) => self.params.halve_l.value(),
             (Channel::Left, BoolControl::Double) => self.params.double_l.value(),
-            (Channel::Right, BoolControl::Double) => self.params.double_r.value(),
+            (Channel::Right, BoolControl::Double) => self.params.double_l.value(),
             (Channel::Left, BoolControl::FeedbackPhase) => self.params.feedback_phase_l.value(),
-            (Channel::Right, BoolControl::FeedbackPhase) => self.params.feedback_phase_r.value(),
-            (Channel::Left, BoolControl::CrossfeedPhase) => self.params.crossfeed_phase_lr.value(),
-            (Channel::Right, BoolControl::CrossfeedPhase) => self.params.crossfeed_phase_rl.value(),
+            (Channel::Right, BoolControl::FeedbackPhase) => self.params.feedback_phase_l.value(),
+            (Channel::Left | Channel::Right, BoolControl::CrossfeedPhase) => false,
             _ => false,
         }
     }
 
-    fn apply_delay_scale(&mut self, ch: Channel, factor: f32, setter: &ParamSetter<'_>) {
+    fn apply_delay_scale(&mut self, _ch: Channel, factor: f32, setter: &ParamSetter<'_>) {
         self.params.push_undo();
         if self.params.tempo_sync.value() {
-            let (note, dev) = self.note_dev_params(ch);
-            let current_ms = synced_delay_ms(note.value(), dev.value());
-            let (next_note, next_dev) = sync_from_ms(current_ms * factor);
-            set_note_dev(setter, note, dev, next_note, next_dev);
-            if self.stereo_link_active() {
-                let (note, dev) = self.note_dev_params(ch.other());
-                let current_ms = synced_delay_ms(note.value(), dev.value());
-                let (next_note, next_dev) = sync_from_ms(current_ms * factor);
-                set_note_dev(setter, note, dev, next_note, next_dev);
-            }
+            let current_ms = synced_delay_ms(self.params.note_l.value(), 0.0);
+            let (next_note, _) = sync_from_ms(current_ms * factor);
+            setter.begin_set_parameter(&self.params.note_l);
+            setter.set_parameter(&self.params.note_l, next_note);
+            setter.end_set_parameter(&self.params.note_l);
         } else {
-            let control = if ch == Channel::Left {
-                FloatControl::DelayTimeL
-            } else {
-                FloatControl::DelayTimeR
-            };
-            let param = self.float_param(control);
+            let param = self.float_param(FloatControl::DelayTimeL);
             set_float_plain(setter, param, (param.value() * factor).clamp(0.005, 2.0));
-            if self.stereo_link_active() {
-                if let Some(other) = self.linked_float(control) {
-                    let param = self.float_param(other);
-                    set_float_plain(setter, param, (param.value() * factor).clamp(0.005, 2.0));
-                }
-            }
         }
         self.status = if factor < 1.0 {
             "Delay halved"
@@ -1996,31 +1918,12 @@ impl NativeWindowState {
         setter: &ParamSetter<'_>,
     ) {
         match control {
-            EnumControl::InputL => set_input_value(
-                setter,
-                &self.params.input_mode_l,
-                input_mode_from_index(index),
-            ),
-            EnumControl::InputR => set_input_value(
-                setter,
-                &self.params.input_mode_r,
-                input_mode_from_index(index),
-            ),
-            EnumControl::NoteL => set_note_dev(
-                setter,
-                &self.params.note_l,
-                &self.params.deviation_l,
-                note_from_index(index),
-                self.params.deviation_l.value(),
-            ),
-            EnumControl::NoteR => set_note_dev(
-                setter,
-                &self.params.note_r,
-                &self.params.deviation_r,
-                note_from_index(index),
-                self.params.deviation_r.value(),
-            ),
-            EnumControl::Routing => self.apply_routing_preset(routing_from_index(index), setter),
+            EnumControl::InputL | EnumControl::InputR | EnumControl::Routing => {}
+            EnumControl::NoteL | EnumControl::NoteR => {
+                setter.begin_set_parameter(&self.params.note_l);
+                setter.set_parameter(&self.params.note_l, note_from_index(index));
+                setter.end_set_parameter(&self.params.note_l);
+            }
             EnumControl::Oversampling => set_oversampling_value(
                 setter,
                 &self.params.oversampling,
@@ -2090,39 +1993,17 @@ impl NativeWindowState {
         match target {
             MidiTarget::InputLevel => set_from_normalized!(&self.params.input_level),
             MidiTarget::OutputLevel => set_from_normalized!(&self.params.output_level),
-            MidiTarget::InputModeL => set_from_normalized!(&self.params.input_mode_l),
-            MidiTarget::InputModeR => set_from_normalized!(&self.params.input_mode_r),
             MidiTarget::DelayTimeL => set_from_normalized!(&self.params.delay_time_l),
-            MidiTarget::DelayTimeR => set_from_normalized!(&self.params.delay_time_r),
             MidiTarget::NoteL => set_from_normalized!(&self.params.note_l),
-            MidiTarget::NoteR => set_from_normalized!(&self.params.note_r),
-            MidiTarget::DeviationL => set_from_normalized!(&self.params.deviation_l),
-            MidiTarget::DeviationR => set_from_normalized!(&self.params.deviation_r),
             MidiTarget::HalveL => set_from_normalized!(&self.params.halve_l),
-            MidiTarget::HalveR => set_from_normalized!(&self.params.halve_r),
             MidiTarget::DoubleL => set_from_normalized!(&self.params.double_l),
-            MidiTarget::DoubleR => set_from_normalized!(&self.params.double_r),
             MidiTarget::LowCutL => set_from_normalized!(&self.params.low_cut_l),
-            MidiTarget::LowCutR => set_from_normalized!(&self.params.low_cut_r),
             MidiTarget::LowCutSlopeL => set_from_normalized!(&self.params.low_cut_slope_l),
-            MidiTarget::LowCutSlopeR => set_from_normalized!(&self.params.low_cut_slope_r),
             MidiTarget::HighCutL => set_from_normalized!(&self.params.high_cut_l),
-            MidiTarget::HighCutR => set_from_normalized!(&self.params.high_cut_r),
             MidiTarget::HighCutSlopeL => set_from_normalized!(&self.params.high_cut_slope_l),
-            MidiTarget::HighCutSlopeR => set_from_normalized!(&self.params.high_cut_slope_r),
             MidiTarget::FeedbackL => set_from_normalized!(&self.params.feedback_l),
-            MidiTarget::FeedbackR => set_from_normalized!(&self.params.feedback_r),
             MidiTarget::FeedbackPhaseL => set_from_normalized!(&self.params.feedback_phase_l),
-            MidiTarget::FeedbackPhaseR => set_from_normalized!(&self.params.feedback_phase_r),
-            MidiTarget::CrossfeedLr => set_from_normalized!(&self.params.crossfeed_lr),
-            MidiTarget::CrossfeedRl => set_from_normalized!(&self.params.crossfeed_rl),
-            MidiTarget::CrossfeedPhaseLr => set_from_normalized!(&self.params.crossfeed_phase_lr),
-            MidiTarget::CrossfeedPhaseRl => set_from_normalized!(&self.params.crossfeed_phase_rl),
-            MidiTarget::Routing => {
-                self.apply_routing_preset(self.params.routing.preview_plain(normalized), setter)
-            }
             MidiTarget::TempoSync => set_from_normalized!(&self.params.tempo_sync),
-            MidiTarget::StereoLink => set_from_normalized!(&self.params.stereo_link),
             MidiTarget::OutputMixL => set_from_normalized!(&self.params.output_mix_l),
             MidiTarget::OutputMixR => set_from_normalized!(&self.params.output_mix_r),
             MidiTarget::Oversampling => set_from_normalized!(&self.params.oversampling),
@@ -2166,6 +2047,7 @@ impl NativeWindowState {
         };
     }
 
+    #[cfg(any())]
     fn apply_routing_preset(&mut self, requested: RoutingModeParam, setter: &ParamSetter<'_>) {
         match requested {
             RoutingModeParam::Customized => {
@@ -2368,6 +2250,7 @@ impl NativeWindowState {
         self.status = format!("Routing: {}", routing_label(self.params.routing.value()));
     }
 
+    #[cfg(any())]
     fn sync_routing_display_to_parameters(&mut self, setter: &ParamSetter<'_>) {
         let actual = classify_routing_shape(&self.params);
         if self.params.routing.value() != actual {
@@ -2380,21 +2263,21 @@ impl NativeWindowState {
             FloatControl::InputLevel => &self.params.input_level,
             FloatControl::OutputLevel => &self.params.output_level,
             FloatControl::DelayTimeL => &self.params.delay_time_l,
-            FloatControl::DelayTimeR => &self.params.delay_time_r,
-            FloatControl::DeviationL => &self.params.deviation_l,
-            FloatControl::DeviationR => &self.params.deviation_r,
+            FloatControl::DelayTimeR | FloatControl::DeviationL | FloatControl::DeviationR => {
+                &self.params.delay_time_l
+            }
             FloatControl::LowCutL => &self.params.low_cut_l,
-            FloatControl::LowCutR => &self.params.low_cut_r,
+            FloatControl::LowCutR => &self.params.low_cut_l,
             FloatControl::LowCutSlopeL => &self.params.low_cut_slope_l,
-            FloatControl::LowCutSlopeR => &self.params.low_cut_slope_r,
+            FloatControl::LowCutSlopeR => &self.params.low_cut_slope_l,
             FloatControl::HighCutL => &self.params.high_cut_l,
-            FloatControl::HighCutR => &self.params.high_cut_r,
+            FloatControl::HighCutR => &self.params.high_cut_l,
             FloatControl::HighCutSlopeL => &self.params.high_cut_slope_l,
-            FloatControl::HighCutSlopeR => &self.params.high_cut_slope_r,
+            FloatControl::HighCutSlopeR => &self.params.high_cut_slope_l,
             FloatControl::FeedbackL => &self.params.feedback_l,
-            FloatControl::FeedbackR => &self.params.feedback_r,
-            FloatControl::CrossfeedLr => &self.params.crossfeed_lr,
-            FloatControl::CrossfeedRl => &self.params.crossfeed_rl,
+            FloatControl::FeedbackR | FloatControl::CrossfeedLr | FloatControl::CrossfeedRl => {
+                &self.params.feedback_l
+            }
             FloatControl::OutputMixL => &self.params.output_mix_l,
             FloatControl::OutputMixR => &self.params.output_mix_r,
         }
@@ -2405,30 +2288,11 @@ impl NativeWindowState {
     }
 
     fn linked_float(&self, control: FloatControl) -> Option<FloatControl> {
-        match control {
-            FloatControl::DelayTimeL => Some(FloatControl::DelayTimeR),
-            FloatControl::DelayTimeR => Some(FloatControl::DelayTimeL),
-            FloatControl::DeviationL => Some(FloatControl::DeviationR),
-            FloatControl::DeviationR => Some(FloatControl::DeviationL),
-            FloatControl::LowCutL => Some(FloatControl::LowCutR),
-            FloatControl::LowCutR => Some(FloatControl::LowCutL),
-            FloatControl::LowCutSlopeL => Some(FloatControl::LowCutSlopeR),
-            FloatControl::LowCutSlopeR => Some(FloatControl::LowCutSlopeL),
-            FloatControl::HighCutL => Some(FloatControl::HighCutR),
-            FloatControl::HighCutR => Some(FloatControl::HighCutL),
-            FloatControl::HighCutSlopeL => Some(FloatControl::HighCutSlopeR),
-            FloatControl::HighCutSlopeR => Some(FloatControl::HighCutSlopeL),
-            FloatControl::FeedbackL => Some(FloatControl::FeedbackR),
-            FloatControl::FeedbackR => Some(FloatControl::FeedbackL),
-            FloatControl::CrossfeedLr => Some(FloatControl::CrossfeedRl),
-            FloatControl::CrossfeedRl => Some(FloatControl::CrossfeedLr),
-            FloatControl::InputLevel
-            | FloatControl::OutputLevel
-            | FloatControl::OutputMixL
-            | FloatControl::OutputMixR => None,
-        }
+        let _ = control;
+        None
     }
 
+    #[cfg(any())]
     fn note_dev_params(
         &self,
         ch: Channel,
@@ -2443,8 +2307,7 @@ impl NativeWindowState {
     }
 
     fn stereo_link_active(&self) -> bool {
-        let ctrl_down = unsafe { (GetKeyState(VK_CONTROL.0 as i32) as u16 & 0x8000) != 0 };
-        self.params.stereo_link.value() ^ ctrl_down
+        false
     }
 
     fn current_layout(&self) -> Layout {
@@ -2682,22 +2545,16 @@ impl FloatControl {
         match self {
             Self::InputLevel => MidiTarget::InputLevel,
             Self::OutputLevel => MidiTarget::OutputLevel,
-            Self::DelayTimeL => MidiTarget::DelayTimeL,
-            Self::DelayTimeR => MidiTarget::DelayTimeR,
-            Self::DeviationL => MidiTarget::DeviationL,
-            Self::DeviationR => MidiTarget::DeviationR,
-            Self::LowCutL => MidiTarget::LowCutL,
-            Self::LowCutR => MidiTarget::LowCutR,
-            Self::LowCutSlopeL => MidiTarget::LowCutSlopeL,
-            Self::LowCutSlopeR => MidiTarget::LowCutSlopeR,
-            Self::HighCutL => MidiTarget::HighCutL,
-            Self::HighCutR => MidiTarget::HighCutR,
-            Self::HighCutSlopeL => MidiTarget::HighCutSlopeL,
-            Self::HighCutSlopeR => MidiTarget::HighCutSlopeR,
-            Self::FeedbackL => MidiTarget::FeedbackL,
-            Self::FeedbackR => MidiTarget::FeedbackR,
-            Self::CrossfeedLr => MidiTarget::CrossfeedLr,
-            Self::CrossfeedRl => MidiTarget::CrossfeedRl,
+            Self::DelayTimeL | Self::DelayTimeR | Self::DeviationL | Self::DeviationR => {
+                MidiTarget::DelayTimeL
+            }
+            Self::LowCutL | Self::LowCutR => MidiTarget::LowCutL,
+            Self::LowCutSlopeL | Self::LowCutSlopeR => MidiTarget::LowCutSlopeL,
+            Self::HighCutL | Self::HighCutR => MidiTarget::HighCutL,
+            Self::HighCutSlopeL | Self::HighCutSlopeR => MidiTarget::HighCutSlopeL,
+            Self::FeedbackL | Self::FeedbackR | Self::CrossfeedLr | Self::CrossfeedRl => {
+                MidiTarget::FeedbackL
+            }
             Self::OutputMixL => MidiTarget::OutputMixL,
             Self::OutputMixR => MidiTarget::OutputMixR,
         }
@@ -2722,11 +2579,10 @@ impl BoolControl {
     fn midi_target(self) -> Option<MidiTarget> {
         match self {
             Self::TempoSync => Some(MidiTarget::TempoSync),
-            Self::StereoLink => Some(MidiTarget::StereoLink),
+            Self::StereoLink => None,
             Self::FeedbackPhaseL | Self::FeedbackPhase => Some(MidiTarget::FeedbackPhaseL),
-            Self::FeedbackPhaseR => Some(MidiTarget::FeedbackPhaseR),
-            Self::CrossfeedPhaseLr | Self::CrossfeedPhase => Some(MidiTarget::CrossfeedPhaseLr),
-            Self::CrossfeedPhaseRl => Some(MidiTarget::CrossfeedPhaseRl),
+            Self::FeedbackPhaseR => Some(MidiTarget::FeedbackPhaseL),
+            Self::CrossfeedPhaseLr | Self::CrossfeedPhase | Self::CrossfeedPhaseRl => None,
             Self::Halve | Self::Double => None,
         }
     }
@@ -2745,11 +2601,8 @@ enum EnumControl {
 impl EnumControl {
     fn midi_target(self) -> MidiTarget {
         match self {
-            Self::InputL => MidiTarget::InputModeL,
-            Self::InputR => MidiTarget::InputModeR,
-            Self::NoteL => MidiTarget::NoteL,
-            Self::NoteR => MidiTarget::NoteR,
-            Self::Routing => MidiTarget::Routing,
+            Self::InputL | Self::InputR | Self::Routing => MidiTarget::NoteL,
+            Self::NoteL | Self::NoteR => MidiTarget::NoteL,
             Self::Oversampling => MidiTarget::Oversampling,
         }
     }
@@ -2782,9 +2635,9 @@ impl Action {
             Self::Bool(control) => control.midi_target(),
             Self::Dropdown(control) => Some(control.midi_target()),
             Self::DelayScale(Channel::Left, factor) if factor < 1.0 => Some(MidiTarget::HalveL),
-            Self::DelayScale(Channel::Right, factor) if factor < 1.0 => Some(MidiTarget::HalveR),
+            Self::DelayScale(Channel::Right, factor) if factor < 1.0 => Some(MidiTarget::HalveL),
             Self::DelayScale(Channel::Left, _) => Some(MidiTarget::DoubleL),
-            Self::DelayScale(Channel::Right, _) => Some(MidiTarget::DoubleR),
+            Self::DelayScale(Channel::Right, _) => Some(MidiTarget::DoubleL),
             Self::TopButton(TopButton::Bypass) => Some(MidiTarget::Bypass),
             _ => None,
         }
@@ -4145,6 +3998,7 @@ fn set_bool_value(setter: &ParamSetter<'_>, param: &BoolParam, value: bool) {
     setter.end_set_parameter(param);
 }
 
+#[cfg(any())]
 fn set_input_value(
     setter: &ParamSetter<'_>,
     param: &nih_plug::params::enums::EnumParam<InputModeParam>,
@@ -4155,6 +4009,7 @@ fn set_input_value(
     setter.end_set_parameter(param);
 }
 
+#[cfg(any())]
 fn set_note_dev(
     setter: &ParamSetter<'_>,
     note: &nih_plug::params::enums::EnumParam<NoteValueParam>,
@@ -4170,6 +4025,7 @@ fn set_note_dev(
     setter.end_set_parameter(dev);
 }
 
+#[cfg(any())]
 fn set_routing_value(
     setter: &ParamSetter<'_>,
     param: &nih_plug::params::enums::EnumParam<RoutingModeParam>,
@@ -4190,12 +4046,14 @@ fn set_oversampling_value(
     setter.end_set_parameter(param);
 }
 
-fn set_standard_inputs(setter: &ParamSetter<'_>, params: &NebulaStereoDelayParams) {
+#[cfg(any())]
+fn set_standard_inputs(setter: &ParamSetter<'_>, params: &NebulaDelayParams) {
     set_input_value(setter, &params.input_mode_l, InputModeParam::Left);
     set_input_value(setter, &params.input_mode_r, InputModeParam::Right);
 }
 
-fn set_normal_phases(setter: &ParamSetter<'_>, params: &NebulaStereoDelayParams) {
+#[cfg(any())]
+fn set_normal_phases(setter: &ParamSetter<'_>, params: &NebulaDelayParams) {
     set_bool_value(setter, &params.feedback_phase_l, false);
     set_bool_value(setter, &params.feedback_phase_r, false);
     set_bool_value(setter, &params.crossfeed_phase_lr, false);
@@ -4247,7 +4105,8 @@ fn rounded_tenth_amount(source: f32) -> f32 {
     rounded_pct as f32 / 100.0
 }
 
-fn classify_routing_shape(params: &NebulaStereoDelayParams) -> RoutingModeParam {
+#[cfg(any())]
+fn classify_routing_shape(params: &NebulaDelayParams) -> RoutingModeParam {
     let im_l = params.input_mode_l.value();
     let im_r = params.input_mode_r.value();
     let fb_l = params.feedback_l.value();
@@ -4348,54 +4207,24 @@ fn is_zero(value: f32) -> bool {
     value.abs() <= ROUTE_EPS
 }
 
-fn apply_snapshot(
-    params: &NebulaStereoDelayParams,
-    setter: &ParamSetter<'_>,
-    snap: &ParamSnapshot,
-) {
+fn apply_snapshot(params: &NebulaDelayParams, setter: &ParamSetter<'_>, snap: &ParamSnapshot) {
     setter.set_parameter(&params.input_level, snap.input_level_db);
     setter.set_parameter(&params.output_level, snap.output_level_db);
-    setter.set_parameter(
-        &params.input_mode_l,
-        input_mode_from_index(snap.input_mode_l),
-    );
-    setter.set_parameter(
-        &params.input_mode_r,
-        input_mode_from_index(snap.input_mode_r),
-    );
     setter.set_parameter(&params.delay_time_l, snap.delay_time_l);
-    setter.set_parameter(&params.delay_time_r, snap.delay_time_r);
     setter.set_parameter(&params.note_l, note_from_index(snap.note_l));
-    setter.set_parameter(&params.note_r, note_from_index(snap.note_r));
-    setter.set_parameter(&params.deviation_l, snap.deviation_l);
-    setter.set_parameter(&params.deviation_r, snap.deviation_r);
     setter.set_parameter(&params.halve_l, snap.halve_l);
-    setter.set_parameter(&params.halve_r, snap.halve_r);
     setter.set_parameter(&params.double_l, snap.double_l);
-    setter.set_parameter(&params.double_r, snap.double_r);
     setter.set_parameter(&params.low_cut_l, snap.low_cut_l);
-    setter.set_parameter(&params.low_cut_r, snap.low_cut_r);
     setter.set_parameter(&params.low_cut_slope_l, snap.low_cut_slope_l);
-    setter.set_parameter(&params.low_cut_slope_r, snap.low_cut_slope_r);
     setter.set_parameter(&params.high_cut_l, snap.high_cut_l);
-    setter.set_parameter(&params.high_cut_r, snap.high_cut_r);
     setter.set_parameter(&params.high_cut_slope_l, snap.high_cut_slope_l);
-    setter.set_parameter(&params.high_cut_slope_r, snap.high_cut_slope_r);
     setter.set_parameter(&params.feedback_l, snap.feedback_l);
-    setter.set_parameter(&params.feedback_r, snap.feedback_r);
     setter.set_parameter(&params.feedback_phase_l, snap.feedback_phase_l);
-    setter.set_parameter(&params.feedback_phase_r, snap.feedback_phase_r);
-    setter.set_parameter(&params.crossfeed_lr, snap.crossfeed_lr);
-    setter.set_parameter(&params.crossfeed_rl, snap.crossfeed_rl);
-    setter.set_parameter(&params.crossfeed_phase_lr, snap.crossfeed_phase_lr);
-    setter.set_parameter(&params.crossfeed_phase_rl, snap.crossfeed_phase_rl);
-    setter.set_parameter(&params.routing, routing_from_index(snap.routing));
     setter.set_parameter(
         &params.oversampling,
         oversampling_from_index(snap.oversampling),
     );
     setter.set_parameter(&params.tempo_sync, snap.tempo_sync);
-    setter.set_parameter(&params.stereo_link, snap.stereo_link);
     setter.set_parameter(&params.output_mix_l, snap.output_mix_l);
     setter.set_parameter(&params.output_mix_r, snap.output_mix_r);
 }
@@ -4404,38 +4233,38 @@ fn preset_values_from_snapshot(snap: &ParamSnapshot) -> PresetValues {
     PresetValues {
         input_level_db: snap.input_level_db,
         output_level_db: snap.output_level_db,
-        input_mode_l: snap.input_mode_l as u8,
-        input_mode_r: snap.input_mode_r as u8,
+        input_mode_l: 1,
+        input_mode_r: 0,
         delay_time_l: snap.delay_time_l,
-        delay_time_r: snap.delay_time_r,
+        delay_time_r: snap.delay_time_l,
         note_l: snap.note_l as u8,
-        note_r: snap.note_r as u8,
-        deviation_l: snap.deviation_l,
-        deviation_r: snap.deviation_r,
+        note_r: snap.note_l as u8,
+        deviation_l: 0.0,
+        deviation_r: 0.0,
         halve_l: snap.halve_l,
-        halve_r: snap.halve_r,
+        halve_r: false,
         double_l: snap.double_l,
-        double_r: snap.double_r,
+        double_r: false,
         low_cut_l: snap.low_cut_l,
-        low_cut_r: snap.low_cut_r,
+        low_cut_r: snap.low_cut_l,
         low_cut_slope_l: snap.low_cut_slope_l,
-        low_cut_slope_r: snap.low_cut_slope_r,
+        low_cut_slope_r: snap.low_cut_slope_l,
         high_cut_l: snap.high_cut_l,
-        high_cut_r: snap.high_cut_r,
+        high_cut_r: snap.high_cut_l,
         high_cut_slope_l: snap.high_cut_slope_l,
-        high_cut_slope_r: snap.high_cut_slope_r,
+        high_cut_slope_r: snap.high_cut_slope_l,
         feedback_l: snap.feedback_l,
-        feedback_r: snap.feedback_r,
+        feedback_r: 0.0,
         feedback_phase_l: snap.feedback_phase_l,
-        feedback_phase_r: snap.feedback_phase_r,
-        crossfeed_lr: snap.crossfeed_lr,
-        crossfeed_rl: snap.crossfeed_rl,
-        crossfeed_phase_lr: snap.crossfeed_phase_lr,
-        crossfeed_phase_rl: snap.crossfeed_phase_rl,
-        routing: snap.routing as u8,
+        feedback_phase_r: false,
+        crossfeed_lr: 0.0,
+        crossfeed_rl: 0.0,
+        crossfeed_phase_lr: false,
+        crossfeed_phase_rl: false,
+        routing: 1,
         oversampling: snap.oversampling as u8,
         tempo_sync: snap.tempo_sync,
-        stereo_link: snap.stereo_link,
+        stereo_link: false,
         output_mix_l: snap.output_mix_l,
         output_mix_r: snap.output_mix_r,
     }
@@ -4477,7 +4306,7 @@ fn preset_name_rect(layout: &Layout) -> UiRect {
 fn preset_popup_items(
     layout: &Layout,
     manager: &PresetManager,
-    _params: &NebulaStereoDelayParams,
+    _params: &NebulaDelayParams,
 ) -> Vec<PresetItem> {
     let mut items = Vec::new();
     let s = layout.s;
@@ -4558,7 +4387,7 @@ enum MidiAction {
     None,
 }
 
-fn midi_popup_items(layout: &Layout, params: &NebulaStereoDelayParams) -> Vec<MidiItem> {
+fn midi_popup_items(layout: &Layout, params: &NebulaDelayParams) -> Vec<MidiItem> {
     let mut items = Vec::new();
     let s = layout.s;
     let x = layout.midi_popup.x + 12.0 * s;

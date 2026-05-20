@@ -1,4 +1,4 @@
-//! GUI module for **Nebula Stereo Delay** by Nebula Audio.
+//! GUI module for **Nebula Delay** by Nebula Audio.
 //!
 //! Implements a DPI-aware, freely-scalable egui editor with a dark professional
 //! theme matching the Nebula Audio family style. All elements resize
@@ -53,7 +53,7 @@ use nih_plug_egui::EguiState;
 
 use crate::midi::{sync_runtime_from_learn_state, MidiRuntime, MidiTarget, MIDI_TARGET_COUNT};
 use crate::parameters::{
-    InputModeParam, NebulaStereoDelayParams, NoteValueParam, OversamplingParam, ParamSnapshot,
+    InputModeParam, NebulaDelayParams, NoteValueParam, OversamplingParam, ParamSnapshot,
     RoutingModeParam,
 };
 use crate::preset::{PresetManager, PresetValues};
@@ -141,7 +141,7 @@ const LOGIC_BUTTON_ON: Color32 = Color32::from_rgb(0x0F, 0x2A, 0x35);
 
 /// GUI-specific state that persists across frames and editor sessions.
 struct EditorState {
-    params: Arc<NebulaStereoDelayParams>,
+    params: Arc<NebulaDelayParams>,
     /// Lock-free audio peak meters shared with the processor.
     meters: Arc<MeterValues>,
     /// Lock-free MIDI runtime shared with the processor.
@@ -174,14 +174,14 @@ struct ValueEditState {
 // Public entry point
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Create the egui editor for the Nebula Stereo Delay plugin.
+/// Create the egui editor for the Nebula Delay plugin.
 ///
 /// Returns `Option<Box<dyn Editor>>` suitable for use in the plugin's
 /// `editor()` method. The window starts at 1000 × 640 logical pixels and
 /// is freely resizable via the corner drag handle; all elements scale
 /// proportionally with the window size and system DPI.
 pub fn create_egui_editor(
-    params: Arc<NebulaStereoDelayParams>,
+    params: Arc<NebulaDelayParams>,
     midi_runtime: Arc<MidiRuntime>,
     meters: Arc<MeterValues>,
 ) -> Option<Box<dyn Editor>> {
@@ -216,7 +216,7 @@ pub fn create_egui_editor(
             // The egui_state reference is shared with the EguiEditor wrapper
             // for window-size coordination.
             let egui_state = state.egui_state.clone();
-            nih_plug_egui::resizable_window::ResizableWindow::new("nebula-stereo-delay")
+            nih_plug_egui::resizable_window::ResizableWindow::new("nebula-delay")
                 .min_size(vec2(820.0, 520.0))
                 .show(ctx, egui_state.as_ref(), |ui| {
                     let root_rect = ui.max_rect();
@@ -287,39 +287,17 @@ fn apply_midi_target_normalized(
     match target {
         MidiTarget::InputLevel => set_from_normalized!(&params.input_level),
         MidiTarget::OutputLevel => set_from_normalized!(&params.output_level),
-        MidiTarget::InputModeL => set_from_normalized!(&params.input_mode_l),
-        MidiTarget::InputModeR => set_from_normalized!(&params.input_mode_r),
         MidiTarget::DelayTimeL => set_from_normalized!(&params.delay_time_l),
-        MidiTarget::DelayTimeR => set_from_normalized!(&params.delay_time_r),
         MidiTarget::NoteL => set_from_normalized!(&params.note_l),
-        MidiTarget::NoteR => set_from_normalized!(&params.note_r),
-        MidiTarget::DeviationL => set_from_normalized!(&params.deviation_l),
-        MidiTarget::DeviationR => set_from_normalized!(&params.deviation_r),
         MidiTarget::HalveL => set_from_normalized!(&params.halve_l),
-        MidiTarget::HalveR => set_from_normalized!(&params.halve_r),
         MidiTarget::DoubleL => set_from_normalized!(&params.double_l),
-        MidiTarget::DoubleR => set_from_normalized!(&params.double_r),
         MidiTarget::LowCutL => set_from_normalized!(&params.low_cut_l),
-        MidiTarget::LowCutR => set_from_normalized!(&params.low_cut_r),
         MidiTarget::LowCutSlopeL => set_from_normalized!(&params.low_cut_slope_l),
-        MidiTarget::LowCutSlopeR => set_from_normalized!(&params.low_cut_slope_r),
         MidiTarget::HighCutL => set_from_normalized!(&params.high_cut_l),
-        MidiTarget::HighCutR => set_from_normalized!(&params.high_cut_r),
         MidiTarget::HighCutSlopeL => set_from_normalized!(&params.high_cut_slope_l),
-        MidiTarget::HighCutSlopeR => set_from_normalized!(&params.high_cut_slope_r),
         MidiTarget::FeedbackL => set_from_normalized!(&params.feedback_l),
-        MidiTarget::FeedbackR => set_from_normalized!(&params.feedback_r),
         MidiTarget::FeedbackPhaseL => set_from_normalized!(&params.feedback_phase_l),
-        MidiTarget::FeedbackPhaseR => set_from_normalized!(&params.feedback_phase_r),
-        MidiTarget::CrossfeedLr => set_from_normalized!(&params.crossfeed_lr),
-        MidiTarget::CrossfeedRl => set_from_normalized!(&params.crossfeed_rl),
-        MidiTarget::CrossfeedPhaseLr => set_from_normalized!(&params.crossfeed_phase_lr),
-        MidiTarget::CrossfeedPhaseRl => set_from_normalized!(&params.crossfeed_phase_rl),
-        MidiTarget::Routing => {
-            apply_routing_preset(state, setter, params.routing.preview_plain(normalized));
-        }
         MidiTarget::TempoSync => set_from_normalized!(&params.tempo_sync),
-        MidiTarget::StereoLink => set_from_normalized!(&params.stereo_link),
         MidiTarget::OutputMixL => set_from_normalized!(&params.output_mix_l),
         MidiTarget::OutputMixR => set_from_normalized!(&params.output_mix_r),
         MidiTarget::Oversampling => set_from_normalized!(&params.oversampling),
@@ -954,6 +932,7 @@ fn draw_nebula_mono_delay(
     );
 }
 
+#[cfg(any())]
 fn draw_nebula_channel(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -1114,6 +1093,7 @@ fn draw_nebula_channel(
     );
 }
 
+#[cfg(any())]
 fn draw_nebula_delay(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -1244,6 +1224,7 @@ fn draw_nebula_delay(
     );
 }
 
+#[cfg(any())]
 fn draw_nebula_global(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -1650,6 +1631,7 @@ fn nebula_text(
     painter.text(c.pos(x, y), align, text, c.font(size), color);
 }
 
+#[cfg(any())]
 fn draw_logic_editor(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>) {
     let host = ui.max_rect();
     let c = LogicCanvas::new(host);
@@ -1698,7 +1680,7 @@ fn draw_logic_editor(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<
     painter.text(
         c.pos(LOGIC_W * 0.5, LOGIC_H - 14.0),
         Align2::CENTER_CENTER,
-        "Stereo Delay",
+        "Nebula Delay",
         c.font(20.0),
         Color32::WHITE,
     );
@@ -1714,6 +1696,7 @@ fn draw_logic_editor(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<
     }
 }
 
+#[cfg(any())]
 fn draw_logic_command_bar(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -1757,6 +1740,7 @@ fn draw_logic_command_bar(
     add_midi_learn_menu(ui, &resp, "bypass", state);
 }
 
+#[cfg(any())]
 fn draw_logic_channel(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -1910,6 +1894,7 @@ fn draw_logic_channel(
     );
 }
 
+#[cfg(any())]
 fn draw_logic_delay(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -2032,6 +2017,7 @@ fn draw_logic_delay(
     );
 }
 
+#[cfg(any())]
 fn draw_logic_filters(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -2137,6 +2123,7 @@ fn draw_logic_filters(
     );
 }
 
+#[cfg(any())]
 fn draw_logic_global(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -2412,25 +2399,12 @@ fn logic_delay_knob(
 ) {
     let params = state.params.clone();
     let synced = params.tempo_sync.value();
-    let delay = if ch == Channel::Left {
-        &params.delay_time_l
-    } else {
-        &params.delay_time_r
-    };
-    let note = if ch == Channel::Left {
-        &params.note_l
-    } else {
-        &params.note_r
-    };
-    let dev = if ch == Channel::Left {
-        &params.deviation_l
-    } else {
-        &params.deviation_r
-    };
+    let delay = &params.delay_time_l;
+    let note = &params.note_l;
     let rect = Rect::from_center_size(c.pos(cx, cy), vec2((r * 2.55) * c.s, (r * 2.55) * c.s));
     let resp = ui.interact(rect, ui.id().with(id), Sense::click_and_drag());
     let norm = if synced {
-        sync_knob_normalized(note.value(), dev.value())
+        note_index(note.value()) as f32 / (note_variants().len() - 1) as f32
     } else {
         delay.modulated_normalized_value()
     };
@@ -2438,12 +2412,7 @@ fn logic_delay_knob(
     if resp.drag_started() {
         state.params.push_undo();
         if synced {
-            logic_begin_sync_gesture(
-                setter,
-                &state.params,
-                ch,
-                stereo_link_active(ui, &state.params),
-            );
+            logic_begin_sync_gesture(setter, &state.params, ch, false);
         } else {
             setter.begin_set_parameter(delay);
             if stereo_link_active(ui, &state.params) {
@@ -2456,16 +2425,15 @@ fn logic_delay_knob(
     if resp.dragged() {
         let delta = -ui.input(|i| i.pointer.delta().y) / ((r * 2.3).max(1.0) * c.s);
         if synced {
-            let new_norm =
-                (sync_knob_normalized(note.value(), dev.value()) + delta).clamp(0.0, 1.0);
+            let current = note_index(note.value()) as f32 / (note_variants().len() - 1) as f32;
             logic_set_sync_norm(
                 ui,
                 state,
                 setter,
                 ch,
-                new_norm,
+                (current + delta).clamp(0.0, 1.0),
                 delta,
-                stereo_link_active(ui, &state.params),
+                false,
             );
         } else {
             logic_set_float_norm_relative(
@@ -2480,12 +2448,7 @@ fn logic_delay_knob(
     }
     if resp.drag_stopped() {
         if synced {
-            logic_end_sync_gesture(
-                setter,
-                &state.params,
-                ch,
-                stereo_link_active(ui, &state.params),
-            );
+            logic_end_sync_gesture(setter, &state.params, ch, false);
         } else {
             setter.end_set_parameter(delay);
             if stereo_link_active(ui, &state.params) {
@@ -2510,13 +2473,13 @@ fn logic_delay_knob(
         draw_logic_note_ring(ui.painter(), c, cx, cy, r + 8.0);
     }
     let norm = if synced {
-        sync_knob_normalized(note.value(), dev.value())
+        note_index(note.value()) as f32 / (note_variants().len() - 1) as f32
     } else {
         norm
     };
     draw_logic_knob_visual(ui.painter(), c, cx, cy, r, norm, LOGIC_MINT, false, false);
     let value = if synced {
-        format!("{:.0} ms", synced_delay_ms(note.value(), dev.value()))
+        format!("{:.0} ms", synced_delay_ms(note.value(), 0.0))
     } else {
         format!("{:.0} ms", delay.value() * 1000.0)
     };
@@ -3359,6 +3322,7 @@ fn logic_midi_button(ui: &mut Ui, state: &mut EditorState, c: LogicCanvas, rect:
     });
 }
 
+#[cfg(any())]
 fn logic_input_dropdown(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -3423,11 +3387,7 @@ fn logic_note_dropdown(
     ch: Channel,
 ) {
     let params = state.params.clone();
-    let param = if ch == Channel::Left {
-        &params.note_l
-    } else {
-        &params.note_r
-    };
+    let param = &params.note_l;
     let current = enum_name(param.value()).replace('T', " triplet");
     let resp = logic_dropdown_button(
         ui,
@@ -3460,6 +3420,7 @@ fn logic_note_dropdown(
     add_midi_learn_menu(ui, &resp, &param_id_for(param.name()), state);
 }
 
+#[cfg(any())]
 fn logic_routing_dropdown(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -3488,6 +3449,7 @@ fn logic_routing_dropdown(
     add_midi_learn_menu(ui, &resp, &param_id_for(param.name()), state);
 }
 
+#[cfg(any())]
 fn routing_menu_modes() -> [(RoutingModeParam, &'static str); 11] {
     [
         (RoutingModeParam::Customized, "Customized"),
@@ -3504,6 +3466,7 @@ fn routing_menu_modes() -> [(RoutingModeParam, &'static str); 11] {
     ]
 }
 
+#[cfg(any())]
 fn apply_routing_preset(
     state: &mut EditorState,
     setter: &ParamSetter<'_>,
@@ -3673,6 +3636,7 @@ fn apply_routing_preset(
 
 const ROUTE_EPS: f32 = 0.006;
 
+#[cfg(any())]
 fn sync_routing_display_to_parameters(state: &mut EditorState, setter: &ParamSetter<'_>) {
     let params = state.params.clone();
     let actual = classify_routing_shape(&params);
@@ -3681,7 +3645,8 @@ fn sync_routing_display_to_parameters(state: &mut EditorState, setter: &ParamSet
     }
 }
 
-fn classify_routing_shape(params: &NebulaStereoDelayParams) -> RoutingModeParam {
+#[cfg(any())]
+fn classify_routing_shape(params: &NebulaDelayParams) -> RoutingModeParam {
     let im_l = params.input_mode_l.value();
     let im_r = params.input_mode_r.value();
     let fb_l = params.feedback_l.value();
@@ -3785,12 +3750,14 @@ fn classify_routing_shape(params: &NebulaStereoDelayParams) -> RoutingModeParam 
     RoutingModeParam::Customized
 }
 
-fn set_standard_inputs(setter: &ParamSetter<'_>, params: &NebulaStereoDelayParams) {
+#[cfg(any())]
+fn set_standard_inputs(setter: &ParamSetter<'_>, params: &NebulaDelayParams) {
     set_input_value(setter, &params.input_mode_l, InputModeParam::Left);
     set_input_value(setter, &params.input_mode_r, InputModeParam::Right);
 }
 
-fn set_normal_phases(setter: &ParamSetter<'_>, params: &NebulaStereoDelayParams) {
+#[cfg(any())]
+fn set_normal_phases(setter: &ParamSetter<'_>, params: &NebulaDelayParams) {
     set_bool_value(setter, &params.feedback_phase_l, false);
     set_bool_value(setter, &params.feedback_phase_r, false);
     set_bool_value(setter, &params.crossfeed_phase_lr, false);
@@ -3809,6 +3776,7 @@ fn set_bool_value(setter: &ParamSetter<'_>, param: &nih_plug::params::BoolParam,
     setter.end_set_parameter(param);
 }
 
+#[cfg(any())]
 fn set_input_value(
     setter: &ParamSetter<'_>,
     param: &nih_plug::params::enums::EnumParam<InputModeParam>,
@@ -3819,6 +3787,7 @@ fn set_input_value(
     setter.end_set_parameter(param);
 }
 
+#[cfg(any())]
 fn set_routing_value(
     setter: &ParamSetter<'_>,
     param: &nih_plug::params::enums::EnumParam<RoutingModeParam>,
@@ -3945,171 +3914,66 @@ fn logic_enum_popup(
 
 fn logic_begin_sync_gesture(
     setter: &ParamSetter<'_>,
-    params: &NebulaStereoDelayParams,
-    ch: Channel,
-    link: bool,
+    params: &NebulaDelayParams,
+    _ch: Channel,
+    _link: bool,
 ) {
-    let (note, dev) = if ch == Channel::Left {
-        (&params.note_l, &params.deviation_l)
-    } else {
-        (&params.note_r, &params.deviation_r)
-    };
-    setter.begin_set_parameter(note);
-    setter.begin_set_parameter(dev);
-    if link {
-        let (other_note, other_dev) = if ch == Channel::Left {
-            (&params.note_r, &params.deviation_r)
-        } else {
-            (&params.note_l, &params.deviation_l)
-        };
-        setter.begin_set_parameter(other_note);
-        setter.begin_set_parameter(other_dev);
-    }
+    setter.begin_set_parameter(&params.note_l);
 }
 
 fn logic_end_sync_gesture(
     setter: &ParamSetter<'_>,
-    params: &NebulaStereoDelayParams,
-    ch: Channel,
-    link: bool,
+    params: &NebulaDelayParams,
+    _ch: Channel,
+    _link: bool,
 ) {
-    let (note, dev) = if ch == Channel::Left {
-        (&params.note_l, &params.deviation_l)
-    } else {
-        (&params.note_r, &params.deviation_r)
-    };
-    setter.end_set_parameter(note);
-    setter.end_set_parameter(dev);
-    if link {
-        let (other_note, other_dev) = if ch == Channel::Left {
-            (&params.note_r, &params.deviation_r)
-        } else {
-            (&params.note_l, &params.deviation_l)
-        };
-        setter.end_set_parameter(other_note);
-        setter.end_set_parameter(other_dev);
-    }
+    setter.end_set_parameter(&params.note_l);
 }
 
 fn logic_set_sync_norm(
-    ui: &Ui,
+    _ui: &Ui,
     state: &mut EditorState,
     setter: &ParamSetter<'_>,
-    ch: Channel,
+    _ch: Channel,
     norm: f32,
-    delta_norm: f32,
-    link: bool,
+    _delta_norm: f32,
+    _link: bool,
 ) {
     let params = state.params.clone();
-    let (note, dev) = if ch == Channel::Left {
-        (&params.note_l, &params.deviation_l)
-    } else {
-        (&params.note_r, &params.deviation_r)
-    };
-    let old_ms = synced_delay_ms(note.value(), dev.value());
-    let (next_note, next_dev) = sync_from_norm(norm);
-    let next_ms = synced_delay_ms(next_note, next_dev);
-    setter.set_parameter(note, next_note);
-    setter.set_parameter(dev, next_dev);
-    if link && stereo_link_active(ui, &state.params) {
-        let (other_note, other_dev) = if ch == Channel::Left {
-            (&params.note_r, &params.deviation_r)
-        } else {
-            (&params.note_l, &params.deviation_l)
-        };
-        let ratio = sync_ratio(old_ms, next_ms, delta_norm);
-        let target_ms = synced_delay_ms(other_note.value(), other_dev.value()) * ratio;
-        let (on, od) = sync_from_ms(target_ms);
-        setter.set_parameter(other_note, on);
-        setter.set_parameter(other_dev, od);
-    }
+    let max = (note_variants().len() - 1) as f32;
+    let idx = (norm.clamp(0.0, 1.0) * max).round().clamp(0.0, max) as usize;
+    setter.set_parameter(&params.note_l, note_variants()[idx].0);
 }
 
 fn logic_set_note_preserve_offset(
-    ui: &Ui,
+    _ui: &Ui,
     state: &mut EditorState,
     setter: &ParamSetter<'_>,
-    ch: Channel,
+    _ch: Channel,
     value: NoteValueParam,
-    reset_deviation: bool,
+    _reset_deviation: bool,
 ) {
     state.params.push_undo();
     let params = state.params.clone();
-    let (note, dev) = if ch == Channel::Left {
-        (&params.note_l, &params.deviation_l)
-    } else {
-        (&params.note_r, &params.deviation_r)
-    };
-    let old_ms = synced_delay_ms(note.value(), dev.value());
-    let new_dev = if reset_deviation { 0.0 } else { dev.value() };
-    let new_ms = synced_delay_ms(value, new_dev);
-    setter.begin_set_parameter(note);
-    setter.set_parameter(note, value);
-    setter.end_set_parameter(note);
-    if reset_deviation {
-        setter.begin_set_parameter(dev);
-        setter.set_parameter(dev, 0.0);
-        setter.end_set_parameter(dev);
-    }
-    if stereo_link_active(ui, &state.params) {
-        let (other_note, other_dev) = if ch == Channel::Left {
-            (&params.note_r, &params.deviation_r)
-        } else {
-            (&params.note_l, &params.deviation_l)
-        };
-        let ratio = sync_ratio(old_ms, new_ms, 0.0);
-        let target_ms = synced_delay_ms(other_note.value(), other_dev.value()) * ratio;
-        let (other_value, other_deviation) = sync_from_ms(target_ms);
-        setter.begin_set_parameter(other_note);
-        setter.set_parameter(other_note, other_value);
-        setter.end_set_parameter(other_note);
-        setter.begin_set_parameter(other_dev);
-        setter.set_parameter(other_dev, other_deviation);
-        setter.end_set_parameter(other_dev);
-    }
+    setter.begin_set_parameter(&params.note_l);
+    setter.set_parameter(&params.note_l, value);
+    setter.end_set_parameter(&params.note_l);
 }
 
 fn logic_set_note_absolute(
-    ui: &Ui,
+    _ui: &Ui,
     state: &mut EditorState,
     setter: &ParamSetter<'_>,
-    ch: Channel,
+    _ch: Channel,
     note: NoteValueParam,
-    deviation: f32,
-    reset_other_relative: bool,
+    _deviation: f32,
+    _reset_other_relative: bool,
 ) {
-    let link = stereo_link_active(ui, &state.params);
     let params = state.params.clone();
-    let (note_param, dev) = if ch == Channel::Left {
-        (&params.note_l, &params.deviation_l)
-    } else {
-        (&params.note_r, &params.deviation_r)
-    };
-    let old_ms = synced_delay_ms(note_param.value(), dev.value());
-    let new_ms = synced_delay_ms(note, deviation);
     state.params.push_undo();
-    setter.begin_set_parameter(note_param);
-    setter.set_parameter(note_param, note);
-    setter.end_set_parameter(note_param);
-    setter.begin_set_parameter(dev);
-    setter.set_parameter(dev, deviation);
-    setter.end_set_parameter(dev);
-    if link && reset_other_relative {
-        let (other_note, other_dev) = if ch == Channel::Left {
-            (&params.note_r, &params.deviation_r)
-        } else {
-            (&params.note_l, &params.deviation_l)
-        };
-        let ratio = sync_ratio(old_ms, new_ms, 0.0);
-        let target_ms = synced_delay_ms(other_note.value(), other_dev.value()) * ratio;
-        let (on, od) = sync_from_ms(target_ms);
-        setter.begin_set_parameter(other_note);
-        setter.set_parameter(other_note, on);
-        setter.end_set_parameter(other_note);
-        setter.begin_set_parameter(other_dev);
-        setter.set_parameter(other_dev, od);
-        setter.end_set_parameter(other_dev);
-    }
+    setter.begin_set_parameter(&params.note_l);
+    setter.set_parameter(&params.note_l, note);
+    setter.end_set_parameter(&params.note_l);
 }
 
 fn sync_ratio(old_ms: f32, new_ms: f32, fallback_delta_norm: f32) -> f32 {
@@ -4157,6 +4021,7 @@ fn format_freq_hz(value: f32) -> String {
     format!("{value:.0} Hz")
 }
 
+#[cfg(any())]
 fn draw_editor_contents(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>, s: f32) {
     ui.with_layout(Layout::top_down(Align::Min), |ui| {
         // ── Top Bar ─────────────────────────────────────────
@@ -4232,6 +4097,7 @@ enum Channel {
 // Top Bar
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[cfg(any())]
 fn draw_top_bar(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>, s: f32) {
     Frame::NONE
         .fill(PANEL_BG)
@@ -4639,6 +4505,7 @@ fn draw_sync_btn(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>,
     });
 }
 
+#[cfg(any())]
 fn draw_link_btn(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>, s: f32) {
     let linked = state.params.stereo_link.value();
     let (label, fg, bg, st) = if linked {
@@ -4670,6 +4537,7 @@ fn draw_link_btn(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>,
 // Channel Panel (Left / Right)
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[cfg(any())]
 fn draw_channel_panel(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -4797,6 +4665,7 @@ fn draw_channel_panel(
 }
 
 /// Macro to select the L or R variant of a parameter pair.
+#[cfg(any())]
 macro_rules! ch_knob_param {
     ($params:expr, $ch:expr, $l:ident, $r:ident) => {
         if $ch == Channel::Left {
@@ -4806,10 +4675,12 @@ macro_rules! ch_knob_param {
         }
     };
 }
+#[cfg(any())]
 use ch_knob_param;
 
 // ── Input mode popup ────────────────────────────────────────────────────
 
+#[cfg(any())]
 fn draw_input_popup(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -4897,6 +4768,7 @@ fn draw_input_popup(
 
 // ── Delay time section ──────────────────────────────────────────────────
 
+#[cfg(any())]
 fn draw_delay_section(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -4935,6 +4807,7 @@ fn draw_delay_section(
         });
 }
 
+#[cfg(any())]
 fn draw_delay_knob(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -5116,6 +4989,7 @@ fn draw_delay_knob(
     add_midi_learn_menu(ui, &response, &param_id_for(delay_param.name()), state);
 }
 
+#[cfg(any())]
 fn draw_delay_scale_button(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -5139,64 +5013,36 @@ fn draw_delay_scale_button(
 }
 
 fn apply_delay_scale(
-    ui: &Ui,
+    _ui: &Ui,
     state: &mut EditorState,
     setter: &ParamSetter<'_>,
-    ch: Channel,
+    _ch: Channel,
     factor: f32,
 ) {
     let synced = state.params.tempo_sync.value();
-    clear_delay_scale_flags(ui, state, setter, ch);
+    clear_delay_scale_flags(_ui, state, setter, _ch);
     if synced {
-        let note_param = if ch == Channel::Left {
-            &state.params.note_l
-        } else {
-            &state.params.note_r
-        };
-        let deviation = if ch == Channel::Left {
-            state.params.deviation_l.value()
-        } else {
-            state.params.deviation_r.value()
-        };
+        let note_param = &state.params.note_l;
         let idx = note_index(note_param.value()) as isize;
         let step = if factor < 1.0 { -1 } else { 1 };
         let next_idx = (idx + step).clamp(0, (note_variants().len() - 1) as isize) as usize;
-        let link_active = stereo_link_active(ui, &state.params);
-        set_note_deviation(
-            state,
-            setter,
-            ch,
-            note_variants()[next_idx].0,
-            deviation,
-            true,
-            link_active,
-        );
+        setter.begin_set_parameter(note_param);
+        setter.set_parameter(note_param, note_variants()[next_idx].0);
+        setter.end_set_parameter(note_param);
     } else {
-        let delay_param = if ch == Channel::Left {
-            &state.params.delay_time_l
-        } else {
-            &state.params.delay_time_r
-        };
+        let delay_param = &state.params.delay_time_l;
         let next = (delay_param.value() * factor).clamp(0.005, 2.0);
         setter.begin_set_parameter(delay_param);
         setter.set_parameter(delay_param, next);
         setter.end_set_parameter(delay_param);
-        if stereo_link_active(ui, &state.params) {
-            if let Some(other) = linked_float_counterpart(&state.params, delay_param.name()) {
-                let other_next = (other.value() * factor).clamp(0.005, 2.0);
-                setter.begin_set_parameter(other);
-                setter.set_parameter(other, other_next);
-                setter.end_set_parameter(other);
-            }
-        }
     }
 }
 
 fn clear_delay_scale_flags(
-    ui: &Ui,
+    _ui: &Ui,
     state: &mut EditorState,
     setter: &ParamSetter<'_>,
-    ch: Channel,
+    _ch: Channel,
 ) {
     let params = state.params.clone();
     let clear_one = |param: &nih_plug::params::BoolParam| {
@@ -5207,29 +5053,8 @@ fn clear_delay_scale_flags(
         }
     };
 
-    match ch {
-        Channel::Left => {
-            clear_one(&params.halve_l);
-            clear_one(&params.double_l);
-        }
-        Channel::Right => {
-            clear_one(&params.halve_r);
-            clear_one(&params.double_r);
-        }
-    }
-
-    if stereo_link_active(ui, &state.params) {
-        match ch {
-            Channel::Left => {
-                clear_one(&params.halve_r);
-                clear_one(&params.double_r);
-            }
-            Channel::Right => {
-                clear_one(&params.halve_l);
-                clear_one(&params.double_l);
-            }
-        }
-    }
+    clear_one(&params.halve_l);
+    clear_one(&params.double_l);
 }
 
 fn note_variants() -> [(NoteValueParam, &'static str); 17] {
@@ -5267,6 +5092,7 @@ fn sync_knob_normalized(note: NoteValueParam, deviation: f32) -> f32 {
     (pos / max).clamp(0.0, 1.0)
 }
 
+#[cfg(any())]
 fn set_sync_from_norm(
     state: &mut EditorState,
     setter: &ParamSetter<'_>,
@@ -5290,6 +5116,7 @@ fn set_sync_from_norm(
     );
 }
 
+#[cfg(any())]
 fn set_note_deviation(
     state: &mut EditorState,
     setter: &ParamSetter<'_>,
@@ -5369,6 +5196,7 @@ fn set_note_deviation(
     }
 }
 
+#[cfg(any())]
 fn draw_note_ring(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -5459,6 +5287,7 @@ fn draw_note_ring(
 }
 
 #[allow(dead_code)]
+#[cfg(any())]
 fn draw_note_value_buttons(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -5502,6 +5331,7 @@ fn draw_note_value_buttons(
     });
 }
 
+#[cfg(any())]
 fn draw_note_popup(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -5565,6 +5395,7 @@ fn draw_note_popup(
     );
 }
 
+#[cfg(any())]
 fn draw_deviation_field(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -5626,6 +5457,7 @@ fn draw_deviation_field(
 // Center Section
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[cfg(any())]
 fn draw_center_section(
     ui: &mut Ui,
     state: &mut EditorState,
@@ -5654,6 +5486,7 @@ fn draw_center_section(
         });
 }
 
+#[cfg(any())]
 fn draw_routing_popup(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>, s: f32) {
     let param = &state.params.routing;
     let current_name = enum_name(param.value());
@@ -5713,6 +5546,7 @@ fn draw_routing_popup(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter
 // Bottom Bar
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[cfg(any())]
 fn draw_bottom_bar(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>, s: f32) {
     Frame::NONE
         .fill(PANEL_BG)
@@ -6200,53 +6034,29 @@ fn add_midi_learn_menu(_ui: &mut Ui, response: &Response, param_id: &str, state:
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Capture the current parameter state as a `ParamSnapshot`.
-fn take_snapshot(params: &NebulaStereoDelayParams) -> ParamSnapshot {
+fn take_snapshot(params: &NebulaDelayParams) -> ParamSnapshot {
     ParamSnapshot {
         input_level_db: params.input_level.value(),
         output_level_db: params.output_level.value(),
-        input_mode_l: input_mode_to_index(params.input_mode_l.value()),
-        input_mode_r: input_mode_to_index(params.input_mode_r.value()),
         delay_time_l: params.delay_time_l.value(),
-        delay_time_r: params.delay_time_r.value(),
         note_l: note_to_index(params.note_l.value()),
-        note_r: note_to_index(params.note_r.value()),
-        deviation_l: params.deviation_l.value(),
-        deviation_r: params.deviation_r.value(),
         halve_l: params.halve_l.value(),
-        halve_r: params.halve_r.value(),
         double_l: params.double_l.value(),
-        double_r: params.double_r.value(),
         low_cut_l: params.low_cut_l.value(),
-        low_cut_r: params.low_cut_r.value(),
         low_cut_slope_l: params.low_cut_slope_l.value(),
-        low_cut_slope_r: params.low_cut_slope_r.value(),
         high_cut_l: params.high_cut_l.value(),
-        high_cut_r: params.high_cut_r.value(),
         high_cut_slope_l: params.high_cut_slope_l.value(),
-        high_cut_slope_r: params.high_cut_slope_r.value(),
         feedback_l: params.feedback_l.value(),
-        feedback_r: params.feedback_r.value(),
         feedback_phase_l: params.feedback_phase_l.value(),
-        feedback_phase_r: params.feedback_phase_r.value(),
-        crossfeed_lr: params.crossfeed_lr.value(),
-        crossfeed_rl: params.crossfeed_rl.value(),
-        crossfeed_phase_lr: params.crossfeed_phase_lr.value(),
-        crossfeed_phase_rl: params.crossfeed_phase_rl.value(),
-        routing: routing_to_index(params.routing.value()),
         oversampling: oversampling_to_index(params.oversampling.value()),
         tempo_sync: params.tempo_sync.value(),
-        stereo_link: params.stereo_link.value(),
         output_mix_l: params.output_mix_l.value(),
         output_mix_r: params.output_mix_r.value(),
     }
 }
 
 /// Apply a `ParamSnapshot` to the live parameters, notifying the host.
-fn apply_snapshot(
-    params: &NebulaStereoDelayParams,
-    setter: &ParamSetter<'_>,
-    snap: &ParamSnapshot,
-) {
+fn apply_snapshot(params: &NebulaDelayParams, setter: &ParamSetter<'_>, snap: &ParamSnapshot) {
     // FloatParams — plain value matches snapshot value directly.
     macro_rules! set_f {
         ($param:expr, $val:expr) => {
@@ -6262,19 +6072,9 @@ fn apply_snapshot(
     }
 
     // EnumParams — convert stored usize index to the enum variant.
-    macro_rules! set_input {
-        ($param:expr, $idx:expr) => {
-            setter.set_parameter($param, input_mode_from_index($idx))
-        };
-    }
     macro_rules! set_note {
         ($param:expr, $idx:expr) => {
             setter.set_parameter($param, note_from_index($idx))
-        };
-    }
-    macro_rules! set_routing {
-        ($param:expr, $idx:expr) => {
-            setter.set_parameter($param, routing_from_index($idx))
         };
     }
     macro_rules! set_oversampling {
@@ -6283,45 +6083,25 @@ fn apply_snapshot(
         };
     }
 
-    set_input!(&params.input_mode_l, snap.input_mode_l);
-    set_input!(&params.input_mode_r, snap.input_mode_r);
     set_f!(&params.input_level, snap.input_level_db);
     set_f!(&params.output_level, snap.output_level_db);
     set_f!(&params.delay_time_l, snap.delay_time_l);
-    set_f!(&params.delay_time_r, snap.delay_time_r);
     set_note!(&params.note_l, snap.note_l);
-    set_note!(&params.note_r, snap.note_r);
-    set_f!(&params.deviation_l, snap.deviation_l);
-    set_f!(&params.deviation_r, snap.deviation_r);
     set_b!(&params.halve_l, snap.halve_l);
-    set_b!(&params.halve_r, snap.halve_r);
     set_b!(&params.double_l, snap.double_l);
-    set_b!(&params.double_r, snap.double_r);
     set_f!(&params.low_cut_l, snap.low_cut_l);
-    set_f!(&params.low_cut_r, snap.low_cut_r);
     set_f!(&params.low_cut_slope_l, snap.low_cut_slope_l);
-    set_f!(&params.low_cut_slope_r, snap.low_cut_slope_r);
     set_f!(&params.high_cut_l, snap.high_cut_l);
-    set_f!(&params.high_cut_r, snap.high_cut_r);
     set_f!(&params.high_cut_slope_l, snap.high_cut_slope_l);
-    set_f!(&params.high_cut_slope_r, snap.high_cut_slope_r);
     set_f!(&params.feedback_l, snap.feedback_l);
-    set_f!(&params.feedback_r, snap.feedback_r);
     set_b!(&params.feedback_phase_l, snap.feedback_phase_l);
-    set_b!(&params.feedback_phase_r, snap.feedback_phase_r);
-    set_f!(&params.crossfeed_lr, snap.crossfeed_lr);
-    set_f!(&params.crossfeed_rl, snap.crossfeed_rl);
-    set_b!(&params.crossfeed_phase_lr, snap.crossfeed_phase_lr);
-    set_b!(&params.crossfeed_phase_rl, snap.crossfeed_phase_rl);
-    set_routing!(&params.routing, snap.routing);
     set_oversampling!(&params.oversampling, snap.oversampling);
     set_b!(&params.tempo_sync, snap.tempo_sync);
-    set_b!(&params.stereo_link, snap.stereo_link);
     set_f!(&params.output_mix_l, snap.output_mix_l);
     set_f!(&params.output_mix_r, snap.output_mix_r);
 }
 
-fn preset_values_from_params(params: &NebulaStereoDelayParams) -> PresetValues {
+fn preset_values_from_params(params: &NebulaDelayParams) -> PresetValues {
     preset_values_from_snapshot(&take_snapshot(params))
 }
 
@@ -6329,38 +6109,38 @@ fn preset_values_from_snapshot(snap: &ParamSnapshot) -> PresetValues {
     PresetValues {
         input_level_db: snap.input_level_db,
         output_level_db: snap.output_level_db,
-        input_mode_l: snap.input_mode_l as u8,
-        input_mode_r: snap.input_mode_r as u8,
+        input_mode_l: 1,
+        input_mode_r: 0,
         delay_time_l: snap.delay_time_l,
-        delay_time_r: snap.delay_time_r,
+        delay_time_r: snap.delay_time_l,
         note_l: snap.note_l as u8,
-        note_r: snap.note_r as u8,
-        deviation_l: snap.deviation_l,
-        deviation_r: snap.deviation_r,
+        note_r: snap.note_l as u8,
+        deviation_l: 0.0,
+        deviation_r: 0.0,
         halve_l: snap.halve_l,
-        halve_r: snap.halve_r,
+        halve_r: false,
         double_l: snap.double_l,
-        double_r: snap.double_r,
+        double_r: false,
         low_cut_l: snap.low_cut_l,
-        low_cut_r: snap.low_cut_r,
+        low_cut_r: snap.low_cut_l,
         low_cut_slope_l: snap.low_cut_slope_l,
-        low_cut_slope_r: snap.low_cut_slope_r,
+        low_cut_slope_r: snap.low_cut_slope_l,
         high_cut_l: snap.high_cut_l,
-        high_cut_r: snap.high_cut_r,
+        high_cut_r: snap.high_cut_l,
         high_cut_slope_l: snap.high_cut_slope_l,
-        high_cut_slope_r: snap.high_cut_slope_r,
+        high_cut_slope_r: snap.high_cut_slope_l,
         feedback_l: snap.feedback_l,
-        feedback_r: snap.feedback_r,
+        feedback_r: 0.0,
         feedback_phase_l: snap.feedback_phase_l,
-        feedback_phase_r: snap.feedback_phase_r,
-        crossfeed_lr: snap.crossfeed_lr,
-        crossfeed_rl: snap.crossfeed_rl,
-        crossfeed_phase_lr: snap.crossfeed_phase_lr,
-        crossfeed_phase_rl: snap.crossfeed_phase_rl,
-        routing: snap.routing as u8,
+        feedback_phase_r: false,
+        crossfeed_lr: 0.0,
+        crossfeed_rl: 0.0,
+        crossfeed_phase_lr: false,
+        crossfeed_phase_rl: false,
+        routing: 1,
         oversampling: snap.oversampling as u8,
         tempo_sync: snap.tempo_sync,
-        stereo_link: snap.stereo_link,
+        stereo_link: false,
         output_mix_l: snap.output_mix_l,
         output_mix_r: snap.output_mix_r,
     }
@@ -6490,51 +6270,25 @@ fn oversampling_to_index(val: OversamplingParam) -> usize {
     }
 }
 
-fn stereo_link_active(ui: &Ui, params: &NebulaStereoDelayParams) -> bool {
-    let flip = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
-    params.stereo_link.value() ^ flip
+fn stereo_link_active(ui: &Ui, params: &NebulaDelayParams) -> bool {
+    let _ = (ui, params);
+    false
 }
 
 fn linked_float_counterpart<'a>(
-    params: &'a NebulaStereoDelayParams,
+    params: &'a NebulaDelayParams,
     name: &str,
 ) -> Option<&'a nih_plug::params::FloatParam> {
-    match name {
-        "Delay Time L" => Some(&params.delay_time_r),
-        "Delay Time R" => Some(&params.delay_time_l),
-        "Deviation L" => Some(&params.deviation_r),
-        "Deviation R" => Some(&params.deviation_l),
-        "Low Cut L" => Some(&params.low_cut_r),
-        "Low Cut R" => Some(&params.low_cut_l),
-        "Low Cut Slope L" => Some(&params.low_cut_slope_r),
-        "Low Cut Slope R" => Some(&params.low_cut_slope_l),
-        "High Cut L" => Some(&params.high_cut_r),
-        "High Cut R" => Some(&params.high_cut_l),
-        "High Cut Slope L" => Some(&params.high_cut_slope_r),
-        "High Cut Slope R" => Some(&params.high_cut_slope_l),
-        "Feedback L" => Some(&params.feedback_r),
-        "Feedback R" => Some(&params.feedback_l),
-        "Crossfeed L-R" => Some(&params.crossfeed_rl),
-        "Crossfeed R-L" => Some(&params.crossfeed_lr),
-        _ => None,
-    }
+    let _ = (params, name);
+    None
 }
 
 fn linked_bool_counterpart<'a>(
-    params: &'a NebulaStereoDelayParams,
+    params: &'a NebulaDelayParams,
     name: &str,
 ) -> Option<&'a nih_plug::params::BoolParam> {
-    match name {
-        "Halve L" => Some(&params.halve_r),
-        "Halve R" => Some(&params.halve_l),
-        "Double L" => Some(&params.double_r),
-        "Double R" => Some(&params.double_l),
-        "Feedback Phase L" => Some(&params.feedback_phase_r),
-        "Feedback Phase R" => Some(&params.feedback_phase_l),
-        "Crossfeed Phase L-R" => Some(&params.crossfeed_phase_rl),
-        "Crossfeed Phase R-L" => Some(&params.crossfeed_phase_lr),
-        _ => None,
-    }
+    let _ = (params, name);
+    None
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

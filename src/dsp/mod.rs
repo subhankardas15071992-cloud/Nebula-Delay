@@ -1,6 +1,6 @@
-//! DSP Engine for **Nebula Stereo Delay** by Nebula Audio
+//! DSP Engine for **Nebula Delay** by Nebula Audio
 //!
-//! A professional stereo delay engine with double-precision (`f64`) processing
+//! A professional delay engine with double-precision (`f64`) processing
 //! throughout the entire signal chain. Only the final output stage should
 //! convert to `f32` when interfacing with the audio host.
 //!
@@ -744,7 +744,7 @@ impl ComplementaryFilter {
 // Main Engine
 // ────────────────────────────────────────────────────────────────────────────
 
-/// The main DSP engine for the **Nebula Stereo Delay** plugin.
+/// The main DSP engine for the **Nebula Delay** plugin.
 ///
 /// # Precision
 ///
