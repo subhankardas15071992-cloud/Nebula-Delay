@@ -5,10 +5,15 @@
 Nebula Delay is the mono sibling of Nebula Stereo Delay. It keeps the same double-precision delay core, lock-free meters, MIDI learn workflow, hard bypass, A/B comparison, undo/redo, preset management, tempo sync, filters, and oversampling, but exposes a true 1-in/1-out plugin for mono tracks.
 ---
 **Screenshot of macOS and Linux variant that uses EGUI:**
-<img width="703" height="642" alt="image" src="https://github.com/user-attachments/assets/76659636-6822-4d52-b1cf-22ad9a4a60c5" />
+<img width="709" height="642" alt="image" src="https://github.com/user-attachments/assets/9d76d47e-2e96-449a-8bc2-4afba439dbda" />
 ---
 **Screenshot of Windows variant that uses Direct2D**
-<img width="710" height="611" alt="image" src="https://github.com/user-attachments/assets/d9a98932-b69d-41ea-938c-5b3cae1c8007" />
+<img width="700" height="638" alt="image" src="https://github.com/user-attachments/assets/77b0fe62-1cd5-4077-8b50-7c5ce653165e" />
+---
+**What's new in v1.1.0**
+- **Tweaked the filter knobs for better aesthetics** - Now even the arc on the LPF knob moves counterclockwise to follow the knob.
+- **Microsoft Windows specific UI tweaks** - The Direct2D UI used on Microsoft Windows has been tweaked to look more coherent and the Note drop down menu going out of bound has been fixed.
+- **Microsoft Windows rendering fixes** - Fixed an issue on the Direct2D variant wherein launching the Stereo Delay and our mono Delay together used to replicate the same screen across the two delays. This issue was caused due to shared class name in the tow plugins. It has been fixed now.
 ---
 ## Formats
 
