@@ -31,6 +31,11 @@ use serde::{Deserialize, Serialize};
 use crate::dsp;
 use crate::midi::MidiLearnState;
 
+const DEFAULT_EDITOR_WIDTH: f32 = 700.0;
+const DEFAULT_EDITOR_HEIGHT: f32 = 580.0;
+const MIN_EDITOR_SCALE: f32 = 0.65;
+const MAX_EDITOR_SCALE: f32 = 3.0;
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Enum Parameter Types
 // ═══════════════════════════════════════════════════════════════════════════
@@ -374,6 +379,47 @@ impl UndoRedoStack {
     }
 }
 
+/// Persisted editor dimensions in logical pixels.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct EditorSizeState {
+    #[serde(default = "default_editor_width")]
+    pub width: f32,
+    #[serde(default = "default_editor_height")]
+    pub height: f32,
+}
+
+impl Default for EditorSizeState {
+    fn default() -> Self {
+        Self {
+            width: DEFAULT_EDITOR_WIDTH,
+            height: DEFAULT_EDITOR_HEIGHT,
+        }
+    }
+}
+
+impl EditorSizeState {
+    fn clamped(self) -> Self {
+        Self {
+            width: self.width.clamp(
+                DEFAULT_EDITOR_WIDTH * MIN_EDITOR_SCALE,
+                DEFAULT_EDITOR_WIDTH * MAX_EDITOR_SCALE,
+            ),
+            height: self.height.clamp(
+                DEFAULT_EDITOR_HEIGHT * MIN_EDITOR_SCALE,
+                DEFAULT_EDITOR_HEIGHT * MAX_EDITOR_SCALE,
+            ),
+        }
+    }
+}
+
+fn default_editor_width() -> f32 {
+    DEFAULT_EDITOR_WIDTH
+}
+
+fn default_editor_height() -> f32 {
+    DEFAULT_EDITOR_HEIGHT
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Display Formatters (value ↔ string)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -607,6 +653,10 @@ pub struct NebulaDelayParams {
     /// MIDI-learn mappings (CC + channel → parameter ID).
     #[persist = "midi_learn"]
     pub midi_learn: RwLock<MidiLearnState>,
+
+    /// Last user-selected editor size in logical pixels.
+    #[persist = "editor_size"]
+    pub editor_size: RwLock<EditorSizeState>,
 }
 
 impl Default for NebulaDelayParams {
@@ -839,11 +889,38 @@ impl Default for NebulaDelayParams {
             ab_snapshots: RwLock::new(AbSnapshots::default()),
             undo_stack: RwLock::new(UndoRedoStack::default()),
             midi_learn: RwLock::new(MidiLearnState::default()),
+            editor_size: RwLock::new(EditorSizeState::default()),
         }
     }
 }
 
 impl NebulaDelayParams {
+    /// Return the persisted editor size, clamped to the supported range.
+    pub fn editor_size(&self) -> (f32, f32) {
+        let size = self
+            .editor_size
+            .read()
+            .map(|size| size.clamped())
+            .unwrap_or_default();
+        (size.width, size.height)
+    }
+
+    /// Return the persisted editor size rounded for egui's logical pixels.
+    pub fn editor_size_pixels(&self) -> (u32, u32) {
+        let (width, height) = self.editor_size();
+        (width.round() as u32, height.round() as u32)
+    }
+
+    /// Persist a user-selected editor size in logical pixels.
+    pub fn set_editor_size(&self, width: f32, height: f32) {
+        let next = EditorSizeState { width, height }.clamped();
+        if let Ok(mut size) = self.editor_size.write() {
+            if (size.width - next.width).abs() >= 0.5 || (size.height - next.height).abs() >= 0.5 {
+                *size = next;
+            }
+        }
+    }
+
     // ──────────────────────────────────────────────────────────────────
     // Snapshot helpers
     // ──────────────────────────────────────────────────────────────────
