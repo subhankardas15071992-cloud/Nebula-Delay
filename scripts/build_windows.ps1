@@ -8,7 +8,7 @@
 $PluginName     = "Nebula Delay"
 $PackageName    = "nebula-delay"
 $LibCrateName   = "nebula_delay"
-$Version        = "1.0.0"
+$Version        = "1.2.0"
 $Vendor         = "Nebula Audio"
 
 $Target         = "x86_64-pc-windows-msvc"
