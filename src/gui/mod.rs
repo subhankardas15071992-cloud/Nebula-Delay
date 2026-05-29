@@ -433,7 +433,7 @@ fn draw_nebula_editor(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter
     painter.text(
         c.pos(LOGIC_W - 18.0, 34.0),
         Align2::RIGHT_CENTER,
-        "v1.1",
+        "v1.2",
         c.font(11.0),
         TEXT_SEC,
     );
