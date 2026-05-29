@@ -12,6 +12,7 @@ Nebula Delay is the mono sibling of Nebula Stereo Delay. It keeps the same doubl
 ---
 **What's new in v1.2.0**
 - **Freely resizable plugin windows** - The plugin window is now freely resizable on all platforms.
+- **GUI size persistence** - The set plugin window size is persisted across sessions.
 
 **What's new in v1.1.0**
 - **Tweaked the filter knobs for better aesthetics** - Now even the arc on the LPF knob moves counterclockwise to follow the knob.
