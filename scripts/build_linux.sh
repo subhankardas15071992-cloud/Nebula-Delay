@@ -11,7 +11,7 @@ set -euo pipefail
 PLUGIN_NAME="Nebula Delay"
 PACKAGE_NAME="nebula-delay"
 LIB_CRATE_NAME="nebula_delay"
-VERSION="1.0.0"
+VERSION="1.2.0"
 VENDOR="Nebula Audio"
 
 TARGET="x86_64-unknown-linux-gnu"
