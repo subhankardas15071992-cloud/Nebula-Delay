@@ -5,10 +5,10 @@
 Nebula Delay is the mono sibling of Nebula Stereo Delay. It keeps the same double-precision delay core, lock-free meters, MIDI learn workflow, hard bypass, A/B comparison, undo/redo, preset management, tempo sync, filters, and oversampling, but exposes a true 1-in/1-out plugin for mono tracks.
 ---
 **Screenshot of macOS and Linux variant that uses EGUI:**
-<img width="709" height="642" alt="image" src="https://github.com/user-attachments/assets/9d76d47e-2e96-449a-8bc2-4afba439dbda" />
+<img width="796" height="612" alt="image" src="https://github.com/user-attachments/assets/e2c1f50d-308f-495f-ab4d-93d62aaaf5e5" />
 ---
 **Screenshot of Windows variant that uses Direct2D**
-<img width="700" height="638" alt="image" src="https://github.com/user-attachments/assets/77b0fe62-1cd5-4077-8b50-7c5ce653165e" />
+<img width="710" height="611" alt="image" src="https://github.com/user-attachments/assets/5fd1b646-3b27-424b-906f-efea3fe104fe" />
 ---
 **What's new in v1.2.0**
 - **Freely resizable plugin windows** - The plugin window is now freely resizable on all platforms.
